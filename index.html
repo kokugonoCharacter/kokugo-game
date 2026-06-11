@@ -1,0 +1,956 @@
+# .github.io
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>少年の日の思い出</title>
+
+<style>
+  * {
+    box-sizing: border-box;
+  }
+
+  body {
+    margin: 0;
+    overflow: hidden;
+    background: #ffffff;
+    font-family: "Yu Gothic", "Hiragino Sans", "Meiryo", sans-serif;
+  }
+
+  .screen {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+  }
+
+  .hidden {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+  }
+
+  #noticeScreen {
+    z-index: 50;
+    background: #ffffff;
+    color: #222222;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: opacity 0.8s ease, visibility 0.8s ease;
+  }
+
+  #noticeText {
+    width: min(82vw, 760px);
+    text-align: center;
+    font-family: "Yu Mincho", "Hiragino Mincho ProN", "MS Mincho", serif;
+    font-size: clamp(15px, 2.1vw, 22px);
+    line-height: 2.15;
+    letter-spacing: 0.04em;
+    animation: fadeUp 1.7s ease forwards;
+  }
+
+  #noticeGuide {
+    position: fixed;
+    bottom: 8vh;
+    width: 100%;
+    text-align: center;
+    color: #888888;
+    font-size: 14px;
+    letter-spacing: 0.08em;
+    opacity: 0;
+    animation: guideIn 1s ease 1.2s forwards;
+  }
+
+  #titleScreen {
+    z-index: 40;
+    background-image: url("title_bg.jpg");
+    background-size: cover;
+    background-position: center center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 1s ease, visibility 1s ease;
+  }
+
+  #titleScreen.visible {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  #titleContent {
+    text-align: center;
+    transform: translateY(-2.5vh);
+    font-family: "Yu Mincho", "Hiragino Mincho ProN", "MS Mincho", serif;
+    text-shadow: 0 3px 14px rgba(70, 45, 20, 0.42);
+  }
+
+  #gameTitle {
+    margin: 0;
+    color: #ffffff;
+    font-size: clamp(44px, 6vw, 88px);
+    font-weight: 700;
+    letter-spacing: 0.09em;
+    line-height: 1.2;
+  }
+
+  .whiteButton {
+    margin-top: clamp(32px, 5vh, 56px);
+    padding: 10px 64px 12px;
+    min-width: 260px;
+    border: 4px solid rgba(255, 255, 255, 0.92);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.03);
+    color: #ffffff;
+    font-family: "Yu Mincho", "Hiragino Mincho ProN", "MS Mincho", serif;
+    font-size: clamp(25px, 3.2vw, 42px);
+    letter-spacing: 0.08em;
+    cursor: pointer;
+    text-shadow: 0 2px 10px rgba(80, 55, 30, 0.5);
+    box-shadow: 0 2px 12px rgba(90, 60, 25, 0.16);
+    transition: transform 0.16s ease, background 0.16s ease;
+  }
+
+  .whiteButton:hover,
+  .whiteButton:focus-visible {
+    background: rgba(255, 255, 255, 0.14);
+    transform: translateY(-2px);
+    outline: none;
+  }
+
+  #mainScreen {
+    z-index: 20;
+    display: none;
+    background-image: url("main_bg.jpg");
+    background-size: cover;
+    background-position: center center;
+    color: #ffffff;
+  }
+
+  #mainScreen.visible {
+    display: block;
+  }
+
+  #characterLayer {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+
+  #emil {
+    position: absolute;
+    height: min(90vh, 1100px);
+    left: 50%;
+    bottom: 0;
+    transform: translateX(-50%);
+    filter: drop-shadow(0 10px 12px rgba(0, 0, 0, 0.22));
+    display: none;
+  }
+
+  #emil.visible {
+    display: block;
+  }
+
+  #choices {
+    position: absolute;
+    left: 8%;
+    right: 8%;
+    bottom: calc(8% + 210px);
+    display: none;
+    flex-direction: column;
+    gap: 10px;
+    z-index: 4;
+  }
+
+  .choice {
+    width: min(720px, 100%);
+    margin: 0 auto;
+    font-size: clamp(16px, 2vw, 20px);
+    padding: 12px 18px;
+    border: 1px solid rgba(255, 255, 255, 0.92);
+    border-radius: 10px;
+    background: rgba(0, 0, 0, 0.62);
+    color: #ffffff;
+    cursor: pointer;
+    text-align: left;
+    transition: background 0.12s ease, color 0.12s ease, transform 0.12s ease;
+  }
+
+  .choice.selected {
+    background: rgba(255, 216, 107, 0.92);
+    color: #111111;
+    transform: translateX(4px);
+  }
+
+  #textbox {
+    position: absolute;
+    left: 8%;
+    right: 8%;
+    bottom: 8%;
+    min-height: 190px;
+    padding: 24px;
+    background: rgba(0, 0, 0, 0.72);
+    border: 2px solid rgba(255, 255, 255, 0.8);
+    border-radius: 14px;
+    z-index: 3;
+  }
+
+  #name {
+    font-weight: bold;
+    margin-bottom: 12px;
+    color: #ffd86b;
+  }
+
+  #text {
+    font-size: clamp(18px, 2.1vw, 23px);
+    line-height: 1.8;
+    white-space: pre-wrap;
+    overflow-wrap: break-word;
+  }
+
+  #next {
+    position: absolute;
+    right: 24px;
+    bottom: 16px;
+    font-size: 16px;
+    opacity: 0.85;
+    display: none;
+  }
+
+  #endingScreen {
+    z-index: 30;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background-image: url("ending_bg.jpg");
+    background-size: cover;
+    background-position: center center;
+    color: #111111;
+    font-family: "Yu Mincho", "Hiragino Mincho ProN", "MS Mincho", serif;
+  }
+
+  #endingScreen.visible {
+    display: flex;
+  }
+
+  #endingPanel {
+    width: min(74vw, 1220px);
+    min-height: 64vh;
+    padding: clamp(34px, 5vw, 72px) clamp(42px, 6vw, 96px);
+    background: rgba(255, 255, 255, 0.72);
+    border-radius: 72px;
+    box-shadow: 0 8px 34px rgba(70, 45, 20, 0.16);
+    backdrop-filter: blur(2px);
+  }
+
+  #workTitle {
+    margin: 0;
+    text-align: center;
+    font-size: clamp(34px, 4.5vw, 64px);
+    font-weight: 500;
+    letter-spacing: 0.16em;
+    line-height: 1.35;
+  }
+
+  #workAuthor {
+    margin: 20px 0 44px;
+    text-align: center;
+    font-size: clamp(20px, 2.3vw, 34px);
+    letter-spacing: 0.12em;
+  }
+
+  #description {
+    margin: 0 auto;
+    width: min(760px, 92%);
+    font-size: clamp(18px, 2vw, 29px);
+    line-height: 1.85;
+    letter-spacing: 0.08em;
+    text-align: left;
+  }
+
+  #againButton {
+    display: block;
+    margin: clamp(40px, 5vh, 64px) auto 0;
+    padding: 10px 54px 12px;
+    min-width: 300px;
+    border: 3px solid rgba(80, 55, 35, 0.76);
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.16);
+    color: #1d1d1d;
+    font-family: "Yu Mincho", "Hiragino Mincho ProN", "MS Mincho", serif;
+    font-size: clamp(24px, 3vw, 40px);
+    letter-spacing: 0.08em;
+    cursor: pointer;
+    transition: transform 0.16s ease, background 0.16s ease;
+  }
+
+  #againButton:hover,
+  #againButton:focus-visible {
+    background: rgba(255, 255, 255, 0.38);
+    transform: translateY(-2px);
+    outline: none;
+  }
+
+  #muteButton {
+    position: fixed;
+    top: 18px;
+    right: 18px;
+    width: 52px;
+    height: 52px;
+    border: 2px solid rgba(255, 255, 255, 0.8);
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.35);
+    color: #ffffff;
+    font-family: "Yu Mincho", "Hiragino Mincho ProN", "MS Mincho", serif;
+    font-size: 18px;
+    cursor: pointer;
+    z-index: 100;
+    display: none;
+    transition: background 0.15s ease, transform 0.15s ease;
+  }
+
+  #muteButton:hover,
+  #muteButton:focus-visible {
+    background: rgba(0, 0, 0, 0.55);
+    transform: scale(1.05);
+    outline: none;
+  }
+
+  #fadeBlack {
+    position: fixed;
+    inset: 0;
+    background: #000000;
+    opacity: 0;
+    pointer-events: none;
+    z-index: 60;
+    transition: opacity 0.22s ease;
+  }
+
+  #fadeBlack.active {
+    opacity: 0.55;
+  }
+
+  @keyframes fadeUp {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+      filter: blur(2px);
+    }
+
+    to {
+      opacity: 1;
+      transform: translateY(0);
+      filter: blur(0);
+    }
+  }
+
+  @keyframes guideIn {
+    from {
+      opacity: 0;
+    }
+
+    to {
+      opacity: 0.65;
+    }
+  }
+</style>
+</head>
+
+<body>
+<section id="noticeScreen" class="screen">
+  <div id="noticeText">
+    このゲームは国語表現授業内で個人的に制作されたものです<br>
+    作品元の著者・出版社様とは一切関係ありません<br>
+    内容はすべてフィクションです
+  </div>
+
+  <div id="noticeGuide">クリック / Enterで進む</div>
+</section>
+
+<section id="titleScreen" class="screen">
+  <div id="titleContent">
+    <h1 id="gameTitle">少年の日の思い出</h1>
+    <button id="startButton" class="whiteButton">スタート</button>
+  </div>
+</section>
+
+<section id="mainScreen" class="screen">
+  <div id="characterLayer">
+    <img id="emil" src="emil.png" alt="エーミール">
+  </div>
+
+  <div id="choices"></div>
+
+  <div id="textbox">
+    <div id="name"></div>
+    <div id="text"></div>
+    <div id="next">▼ 次へ</div>
+  </div>
+</section>
+
+<section id="endingScreen" class="screen">
+  <div id="endingPanel">
+    <h1 id="workTitle">「少年の日の思い出」</h1>
+    <div id="workAuthor">ヘルマン・ヘッセ</div>
+
+    <div id="description">
+      『少年の日の思い出』（原題:Jugendgedenken）は、ドイツ出身のスイス人作家ヘルマン・ヘッセが1931年（昭和6年）に発表した短編小説。<br>
+	日本では、中学校1年生の国語教科書に掲載されていることで、日本国内での知名度は高い。<br>
+　　　　　　　　　　　　　　（Wikipediaより引用）
+
+    </div>
+
+    <button id="againButton">もう一度遊ぶ</button>
+  </div>
+
+</section>
+
+<button id="muteButton">音</button>
+
+<div id="fadeBlack"></div>
+
+<audio id="titleBgm" src="title_bgm.mp3" loop></audio>
+<audio id="mainBgm" src="main_bgm.mp3" loop></audio>
+<audio id="decisionSound" src="decision.mp3"></audio>
+<audio id="kotiBgm" src="oni.mp3"></audio>
+
+<script>
+  const scenario = {
+    start: {
+      name: "",
+      character: false,
+      bgm: "main",
+      text: "夏の午後だった、庭は明るく、空は青かった。\n僕は趣味の昆虫採集に外に出ていた。",
+      next: "cicadaFirst"
+    },
+
+    cicadaFirst: {
+      name: "",
+      character: false,
+      bgm: "main",
+      text: "庭にはたくさんの虫がいた。全部採ってしまうのはかわいそうなので、\n僕は一匹だけ捕まえる事にした。",
+      choices: [
+        {
+          text: "ミンミンゼミ",
+          next: "afterFirstChoice",
+          set: { firstCicada: "ミンミンゼミ" }
+        },
+        {
+          text: "アブラゼミ",
+          next: "afterFirstChoice",
+          set: { firstCicada: "アブラゼミ" }
+        },
+        {
+          text: "クマゼミ",
+          next: "afterFirstChoice",
+          set: { firstCicada: "クマゼミ" }
+        }
+      ]
+    },
+
+
+afterFirstChoice: {
+  name: "",
+  character: false,
+  bgm: "main",
+  text: "僕は一番うるさかったセミを捕まえた。虫かごの中でもこりずに鳴いている。\n帰ったら早速標本にしてみよう。\n家に足を向けたその時だった。",
+  next: "semisemi"
+},
+
+
+    semisemi: {
+      name: "???",
+      character: false,
+      bgm: "main",
+      text: "「ちょっと待ちなよ」",
+      next: "cicadaSecond",
+},
+
+
+    cicadaSecond: {
+      name: "エーミール",
+      character: true,
+      bgm: "main",
+      text: "昆虫採集しているかと思ったら、君はセミを捕まえているじゃないか。\nただのセミなんか捕まえてどうするんだ。",
+      choices: [
+        {
+          text: "「ただのセミじゃないよ、ミンミンゼミだよ」",
+          answer: "ミンミンゼミ"
+        },
+        {
+          text: "「ただのセミじゃないよ、クマゼミだよ」",
+          answer: "クマゼミ"
+        },
+        {
+          text: "「ただのセミじゃないよ、アブラゼミだよ」",
+          answer: "アブラゼミ"
+        }
+      ]
+    },
+
+    cicadaCorrect: {
+      name: "エーミール",
+      character: true,
+      bgm: "main",
+      text: "そうだね。これは{firstCicada}だ。\nそこは分かっているようで安心したよ。",
+      next: "seminotugi"
+    },
+
+    	seminotugi: {
+      	name: "",
+      	character: true,
+      	bgm: "main",
+      	text: "あいかわらず失礼な奴だと思った。\n流石の僕でも{firstCicada}の見分けくらいつく。",
+      	next: "afterCicada"
+    	},
+
+
+    cicadaWrong: {
+      name: "エーミール",
+      character: true,
+      bgm: "main",
+      text: "はぁ？　これはどう見ても{firstCicada}だが？\n自分で捕まえたくせに、君はそんなことも分からないのか。",
+      next: "tukutuku"
+    },
+    	tukutuku: {
+      	name: "",
+      	character: true,
+      	bgm: "main",
+      	text: "失礼な奴だと思った。\nしかし間違ってしまった僕は、ただじっと彼の目を見つめることしかできなかった。",
+      	next: "ねむい"
+    	},
+
+    	ねむい: {
+      	name: "エーミール",
+      	character: true,
+      	bgm: "koti",
+      	text: "こんな名前もわからないような子供に捕まえられて、{firstCicada}がかわいそうだ。\nほら、森へ帰りな。",
+      	next: "ねむねむ"
+    	},
+
+    	ねむねむ: {
+      	name: "",
+      	character: false,
+      	bgm: "koti",
+      	text: "そういって彼は、僕が捕まえたセミを勝手に逃がしてしまった。\nなんだコイツ。腹が立つ。\n僕は腹いせに、今度彼の大事な標本を破壊してやろうと心に決めた。",
+      	next: "info"
+    	},
+
+
+
+    afterCicada: {
+      name: "エーミール",
+      character: true,
+      bgm: "main",
+      text: "ところで、君は{firstCicada}なんて捕まえてどうするつもりなんだい。",
+      choices: [
+        { text: "標本にする", next: "endGood" },
+        { text: "エーミールにあげる", next: "end" },
+      ]
+    },
+
+    endGood: {
+      name: "",
+      character: false,
+      bgm: "main",
+      text: "僕はセミを標本にする事を伝えた。\nエーミールは僕の返事を聞いて、ただ「そうか」と興味なさげに答えただけだった。\nそっちから聞いてきたくせになんだよコイツ。\n僕は腹が立ったので、今度彼の大事な標本を破壊してやろうと心に決めた。",
+      next: "info"
+    },
+
+    end: {
+      name: "エーミール",
+      character: true,
+      bgm: "main",
+      text: "……",
+      next: "endSilent"
+    },
+
+    endSilent: {
+      name: "エーミール",
+      character: true,
+      bgm: "main",
+      text: "……はぁ？！　僕にくれるだ？　\n別に要らないし、そんなので僕が喜ぶとでも思っているのか。",
+      next: "ねこねこ"
+    },
+
+    ねこねこ: {
+      name: "",
+      character: false,
+      bgm: "koti",
+      text: "そう言って、彼は走り去ってしまった。\n後ろから見える彼の耳が、少し赤かった。\nあれが怒りなのか照れなのか、僕には分からなかった。",
+      next: "info"
+    },
+
+
+    info: {
+      type: "endingInfo"
+    }
+  };
+
+  const state = {
+    firstCicada: "",
+    secondCicada: ""
+  };
+
+  let current = "start";
+  let charIndex = 0;
+  let typing = false;
+  let selectedChoice = 0;
+  let soundReady = false;
+  let changingScene = false;
+  let currentBgm = "";
+  let isMuted = false;
+
+  const noticeScreen = document.getElementById("noticeScreen");
+  const titleScreen = document.getElementById("titleScreen");
+  const mainScreen = document.getElementById("mainScreen");
+  const endingScreen = document.getElementById("endingScreen");
+
+  const startButton = document.getElementById("startButton");
+  const againButton = document.getElementById("againButton");
+  const muteButton = document.getElementById("muteButton");
+  const fadeBlack = document.getElementById("fadeBlack");
+
+  const titleBgm = document.getElementById("titleBgm");
+  const mainBgm = document.getElementById("mainBgm");
+  const decisionSound = document.getElementById("decisionSound");
+
+  const nameBox = document.getElementById("name");
+  const textBox = document.getElementById("text");
+  const choicesBox = document.getElementById("choices");
+  const nextMark = document.getElementById("next");
+  const emil = document.getElementById("emil");
+
+  titleBgm.volume = 0.55;
+  mainBgm.volume = 0.48;
+  decisionSound.volume = 0.7;
+
+  function playDecisionSound() {
+    if (!soundReady) return;
+
+    decisionSound.currentTime = 0;
+    decisionSound.play().catch(() => {});
+  }
+
+  function setMuted(muted) {
+    isMuted = muted;
+
+    titleBgm.muted = muted;
+    mainBgm.muted = muted;
+    decisionSound.muted = muted;
+
+    muteButton.textContent = muted ? "消" : "音";
+  }
+
+  function playBgm(target) {
+    if (currentBgm === target) return;
+
+    titleBgm.pause();
+    mainBgm.pause();
+
+    currentBgm = target;
+
+    if (target === "title") {
+      titleBgm.play().catch(() => {});
+    }
+
+    if (target === "main") {
+      mainBgm.play().catch(() => {});
+    }
+
+    if (target === "none") {
+      currentBgm = "";
+    }
+  }
+
+  function applyTextVariables(text) {
+    return text
+      .replaceAll("{firstCicada}", state.firstCicada)
+      .replaceAll("{secondCicada}", state.secondCicada);
+  }
+
+  function resetState() {
+    state.firstCicada = "";
+    state.secondCicada = "";
+  }
+
+  function fadeAction(action) {
+    if (changingScene) return;
+
+    changingScene = true;
+    playDecisionSound();
+    fadeBlack.classList.add("active");
+
+    setTimeout(() => {
+      action();
+      fadeBlack.classList.remove("active");
+      changingScene = false;
+    }, 260);
+  }
+
+  function showTitle() {
+    noticeScreen.classList.add("hidden");
+    mainScreen.classList.remove("visible");
+    endingScreen.classList.remove("visible");
+
+    titleScreen.style.display = "flex";
+    titleScreen.classList.add("visible");
+
+    muteButton.style.display = "block";
+
+    playBgm("title");
+  }
+
+  function startMain() {
+    resetState();
+
+    titleScreen.classList.remove("visible");
+    titleScreen.style.display = "none";
+    endingScreen.classList.remove("visible");
+    mainScreen.classList.add("visible");
+
+    showScene("start");
+  }
+
+  function showEndingInfo() {
+    mainScreen.classList.remove("visible");
+    titleScreen.classList.remove("visible");
+    endingScreen.classList.add("visible");
+
+    playBgm("title");
+  }
+
+  function showScene(id) {
+    current = id;
+    const scene = scenario[id];
+
+    if (scene.type === "endingInfo") {
+      showEndingInfo();
+      return;
+    }
+
+    if (scene.bgm) {
+      playBgm(scene.bgm);
+    }
+
+    nameBox.textContent = scene.name;
+    nameBox.style.display = scene.name ? "block" : "none";
+
+    emil.classList.toggle("visible", !!scene.character);
+
+    textBox.textContent = "";
+    choicesBox.innerHTML = "";
+    choicesBox.style.display = "none";
+    nextMark.style.display = "none";
+
+    charIndex = 0;
+    typing = true;
+
+    const displayedText = applyTextVariables(scene.text);
+    typeText(displayedText);
+  }
+
+  function typeText(fullText) {
+    if (charIndex < fullText.length) {
+      textBox.textContent += fullText.charAt(charIndex);
+      charIndex++;
+
+      setTimeout(() => typeText(fullText), 34);
+    } else {
+      typing = false;
+      const scene = scenario[current];
+
+      if (scene.choices) {
+        showChoices(scene.choices);
+      } else if (scene.next) {
+        nextMark.style.display = "block";
+      }
+    }
+  }
+
+  function finishText() {
+    const scene = scenario[current];
+
+    textBox.textContent = applyTextVariables(scene.text);
+    charIndex = textBox.textContent.length;
+    typing = false;
+
+    if (scene.choices) {
+      showChoices(scene.choices);
+    } else if (scene.next) {
+      nextMark.style.display = "block";
+    }
+  }
+
+  function handleChoice(choice) {
+    if (choice.set) {
+      Object.assign(state, choice.set);
+    }
+
+    if (choice.answer) {
+      state.secondCicada = choice.answer;
+
+      if (choice.answer === state.firstCicada) {
+        showScene("cicadaCorrect");
+      } else {
+        showScene("cicadaWrong");
+      }
+
+      return;
+    }
+
+    showScene(choice.next);
+  }
+
+  function showChoices(choices) {
+    choicesBox.innerHTML = "";
+    choicesBox.style.display = "flex";
+    selectedChoice = 0;
+
+    choices.forEach((choice, index) => {
+      const button = document.createElement("button");
+
+      button.textContent = choice.text;
+      button.className = "choice";
+
+      if (index === selectedChoice) {
+        button.classList.add("selected");
+      }
+
+      button.onclick = (event) => {
+        event.stopPropagation();
+        selectedChoice = index;
+        updateChoiceSelection();
+
+        fadeAction(() => handleChoice(choice));
+      };
+
+      button.onpointerenter = () => {
+        selectedChoice = index;
+        updateChoiceSelection();
+      };
+
+      choicesBox.appendChild(button);
+    });
+  }
+
+  function updateChoiceSelection() {
+    const buttons = document.querySelectorAll(".choice");
+
+    buttons.forEach((button, index) => {
+      button.classList.toggle("selected", index === selectedChoice);
+    });
+  }
+
+  function proceed() {
+    if (changingScene) return;
+
+    const scene = scenario[current];
+
+    if (typing) {
+      finishText();
+      return;
+    }
+
+    if (scene.choices) {
+      const choice = scene.choices[selectedChoice];
+      fadeAction(() => handleChoice(choice));
+      return;
+    }
+
+    if (scene.next) {
+      fadeAction(() => showScene(scene.next));
+    }
+  }
+
+  muteButton.addEventListener("click", (event) => {
+    event.stopPropagation();
+    setMuted(!isMuted);
+  });
+
+  noticeScreen.addEventListener("click", () => {
+    soundReady = true;
+    fadeAction(showTitle);
+  });
+
+  startButton.addEventListener("click", (event) => {
+    event.stopPropagation();
+    fadeAction(startMain);
+  });
+
+  againButton.addEventListener("click", () => {
+    fadeAction(startMain);
+  });
+
+  document.addEventListener("click", (event) => {
+    if (!mainScreen.classList.contains("visible")) return;
+
+    if (!event.target.classList.contains("choice")) {
+      proceed();
+    }
+  });
+
+  document.addEventListener("keydown", (event) => {
+    if (!["Enter", " ", "ArrowUp", "ArrowDown"].includes(event.key)) {
+      return;
+    }
+
+    if (!noticeScreen.classList.contains("hidden")) {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        soundReady = true;
+        fadeAction(showTitle);
+      }
+
+      return;
+    }
+
+    if (titleScreen.classList.contains("visible")) {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        fadeAction(startMain);
+      }
+
+      return;
+    }
+
+    if (endingScreen.classList.contains("visible")) {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        fadeAction(startMain);
+      }
+
+      return;
+    }
+
+    if (!mainScreen.classList.contains("visible")) return;
+
+    const scene = scenario[current];
+
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      proceed();
+      return;
+    }
+
+    if (scene.choices && !typing) {
+      if (event.key === "ArrowDown") {
+        event.preventDefault();
+        selectedChoice = (selectedChoice + 1) % scene.choices.length;
+        updateChoiceSelection();
+      }
+
+      if (event.key === "ArrowUp") {
+        event.preventDefault();
+        selectedChoice = (selectedChoice - 1 + scene.choices.length) % scene.choices.length;
+        updateChoiceSelection();
+      }
+    }
+  });
+</script>
+</body>
+</html>
+
