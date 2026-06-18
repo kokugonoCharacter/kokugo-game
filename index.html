@@ -1,41 +1,2776 @@
 <!DOCTYPE html>
 <html lang="ja">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>準備中</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>国語表現　ノベルゲーム</title>
+<style>
+  * { box-sizing: border-box; }
 
-    <style>
-        body {
-            margin: 0;
-            height: 100vh;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            background: #f5f5f5;
-            font-family: sans-serif;
-            text-align: center;
-        }
+  body {
+    margin: 0;
+    overflow: hidden;
+    background: #000000;
+    color: #ffffff;
+    font-family: "Yu Gothic", "Hiragino Sans", "Meiryo", sans-serif;
+    touch-action: manipulation;
+  }
 
-        .container {
-            padding: 30px;
-        }
+  .screen {
+    position: fixed;
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+  }
 
-        h1 {
-            font-size: 3rem;
-            margin-bottom: 20px;
-        }
+  /* 注意事項画面 */
+  #noticeScreen {
+    z-index: 50;
+    background: #ffffff;
+    color: #222222;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: opacity 0.8s ease, visibility 0.8s ease;
+  }
 
-        p {
-            font-size: 1.3rem;
-        }
-    </style>
+  #noticeScreen.hidden {
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+  }
+
+  #noticeText {
+    width: min(86vw, 760px);
+    text-align: center;
+    font-family: "Yu Mincho", "Hiragino Mincho ProN", "MS Mincho", serif;
+    font-size: clamp(15px, 4vw, 22px);
+    line-height: 2.0;
+    letter-spacing: 0.04em;
+    opacity: 0;
+    transform: translateY(8px);
+    animation: noticeIn 1.8s ease forwards;
+  }
+
+  #noticeGuide {
+    position: fixed;
+    bottom: 8vh;
+    width: 100%;
+    text-align: center;
+    color: #888888;
+    font-size: clamp(12px, 3.2vw, 15px);
+    letter-spacing: 0.08em;
+    opacity: 0;
+    animation: guideIn 1.0s ease 1.3s forwards;
+  }
+
+  @keyframes noticeIn {
+    from { opacity: 0; transform: translateY(8px); filter: blur(2px); }
+    to { opacity: 1; transform: translateY(0); filter: blur(0); }
+  }
+
+  @keyframes guideIn {
+    from { opacity: 0; }
+    to { opacity: 0.65; }
+  }
+
+  /* タイトル画面 */
+  #titleScreen {
+    z-index: 40;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background-image: url("title_shonen.jpg");
+    background-size: cover;
+    background-position: center center;
+  }
+
+  #titleContent {
+    width: 88vw;
+    text-align: center;
+    transform: translateY(-2vh);
+    font-family: "Yu Mincho", "Hiragino Mincho ProN", "MS Mincho", serif;
+    text-shadow: 0 3px 14px rgba(70, 45, 20, 0.45);
+  }
+
+  #gameTitle {
+    margin: 0;
+    color: #ffffff;
+    font-size: clamp(38px, 12vw, 76px);
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    line-height: 1.25;
+  }
+
+  #gameCaption {
+    margin-top: 16px;
+    color: #ffffff;
+    font-size: clamp(15px, 4.6vw, 24px);
+    letter-spacing: 0.08em;
+  }
+
+  .titleArrow {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: clamp(44px, 12vw, 64px);
+    height: clamp(44px, 12vw, 64px);
+    border: 2px solid rgba(255,255,255,0.85);
+    border-radius: 50%;
+    background: rgba(0,0,0,0.24);
+    color: #ffffff;
+    font-size: clamp(26px, 8vw, 38px);
+    cursor: pointer;
+    z-index: 45;
+  }
+
+  #prevGameButton { left: 4vw; }
+  #nextGameButton { right: 4vw; }
+
+  #startButton {
+    margin-top: clamp(30px, 7vh, 58px);
+    padding: 10px 44px 12px;
+    min-width: min(68vw, 320px);
+    border: 4px solid rgba(255,255,255,0.92);
+    border-radius: 999px;
+    background: rgba(255,255,255,0.04);
+    color: #ffffff;
+    font-family: "Yu Mincho", "Hiragino Mincho ProN", "MS Mincho", serif;
+    font-size: clamp(25px, 8vw, 42px);
+    letter-spacing: 0.08em;
+    cursor: pointer;
+  }
+
+  /* 本編画面 */
+  #mainScreen {
+    z-index: 20;
+    display: none;
+    background-image: url("main_bg.jpg");
+    background-size: cover;
+    background-position: center center;
+  }
+
+  #standImage {
+    position: absolute;
+    height: 56vh;
+    left: 50%;
+    bottom: 24vh;
+    transform: translateX(-50%);
+    display: none;
+    pointer-events: none;
+    filter: drop-shadow(0 10px 12px rgba(0,0,0,0.25));
+  }
+
+  #standImage.visible { display: block; }
+
+  #choices {
+    position: absolute;
+    left: 5vw;
+    right: 5vw;
+    bottom: calc(4vh + 31vh);
+    display: none;
+    flex-direction: column;
+    gap: 10px;
+    z-index: 5;
+  }
+
+  .choice {
+    width: 100%;
+    margin: 0 auto;
+    padding: 14px 16px;
+    border: 1px solid rgba(255,255,255,0.92);
+    border-radius: 12px;
+    background: rgba(0,0,0,0.68);
+    color: #ffffff;
+    font-size: clamp(15px, 4.2vw, 20px);
+    cursor: pointer;
+    text-align: left;
+    transition: background 0.15s ease, color 0.15s ease, transform 0.15s ease;
+  }
+
+  .choice.selected,
+  .choice:hover,
+  .choice:focus-visible {
+    background: rgba(255,216,107,0.92);
+    color: #111111;
+    transform: translateY(-2px);
+    outline: none;
+  }
+
+  #textbox {
+    position: absolute;
+    left: 4vw;
+    right: 4vw;
+    bottom: 4vh;
+    min-height: 27vh;
+    max-height: 33vh;
+    padding: 18px 18px 32px;
+    background: rgba(0,0,0,0.74);
+    border: 2px solid rgba(255,255,255,0.82);
+    border-radius: 16px;
+    z-index: 4;
+  }
+
+  #name {
+    margin-bottom: 9px;
+    color: #ffd86b;
+    font-weight: bold;
+    font-size: clamp(15px, 4.2vw, 20px);
+  }
+
+  #text {
+    font-size: clamp(16px, 4.4vw, 22px);
+    line-height: 1.72;
+    white-space: pre-wrap;
+    overflow-wrap: break-word;
+  }
+
+  #next {
+    position: absolute;
+    right: 20px;
+    bottom: 12px;
+    font-size: clamp(13px, 3.5vw, 16px);
+    opacity: 0.85;
+    display: none;
+  }
+
+  /* END画面 */
+  #endScreen {
+    z-index: 35;
+    display: none;
+    background: #000000;
+    color: #ffffff;
+    font-family: "Yu Mincho", "Hiragino Mincho ProN", "MS Mincho", serif;
+  }
+
+  #endTitle {
+    position: absolute;
+    top: 14vh;
+    width: 100%;
+    text-align: center;
+    font-size: clamp(32px, 10vw, 56px);
+    text-decoration: underline;
+    text-underline-offset: 10px;
+    letter-spacing: 0.12em;
+  }
+
+  #endMessage {
+    position: absolute;
+    top: 46vh;
+    width: 100%;
+    transform: translateY(-50%);
+    text-align: center;
+    font-size: clamp(32px, 10vw, 68px);
+    line-height: 1.65;
+    letter-spacing: 0.08em;
+    white-space: pre-wrap;
+  }
+
+  #endGuide {
+    position: absolute;
+    bottom: 8vh;
+    width: 100%;
+    text-align: center;
+    opacity: 0.8;
+    font-size: clamp(13px, 4vw, 18px);
+  }
+
+  #endMark {
+    position: absolute;
+    right: 6vw;
+    bottom: 6vh;
+    width: min(26vw, 160px);
+    height: auto;
+  }
+
+  /* 作品説明画面 */
+  #infoScreen {
+    z-index: 30;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background-image: url("ending_bg.jpg");
+    background-size: cover;
+    background-position: center center;
+    color: #111111;
+    font-family: "Yu Mincho", "Hiragino Mincho ProN", "MS Mincho", serif;
+  }
+
+  #infoPanel {
+    width: 88vw;
+    min-height: 62vh;
+    max-height: 86vh;
+    overflow-y: auto;
+    padding: 34px 24px 28px;
+    background: rgba(255,255,255,0.76);
+    border-radius: 36px;
+  }
+
+  #workTitle {
+    margin: 0;
+    text-align: center;
+    font-size: clamp(30px, 9vw, 56px);
+    font-weight: 500;
+    letter-spacing: 0.12em;
+  }
+
+  #workAuthor {
+    margin: 16px 0 30px;
+    text-align: center;
+    font-size: clamp(18px, 5vw, 30px);
+  }
+
+  #workDescription {
+    font-size: clamp(16px, 4.4vw, 24px);
+    line-height: 1.75;
+    white-space: pre-wrap;
+  }
+
+  #infoButtons {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+    margin-top: 32px;
+  }
+
+  .infoButton {
+    width: 100%;
+    padding: 12px 24px;
+    border: 3px solid rgba(80,55,35,0.76);
+    border-radius: 999px;
+    background: rgba(255,255,255,0.18);
+    color: #1d1d1d;
+    font-family: "Yu Mincho", "Hiragino Mincho ProN", "MS Mincho", serif;
+    font-size: clamp(20px, 6vw, 34px);
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease, transform 0.15s ease;
+  }
+
+  .infoButton:hover,
+  .infoButton:focus-visible,
+  #startButton:hover,
+  #startButton:focus-visible,
+  .titleArrow:hover,
+  .titleArrow:focus-visible {
+    background: rgba(255,216,107,0.88);
+    color: #111111;
+  }
+
+  /* AUDIO / SKIP ボタン */
+  .topButton {
+    position: fixed;
+    top: 12px;
+    width: 72px;
+    height: 34px;
+    border: 2px solid rgba(255,255,255,0.82);
+    border-radius: 999px;
+    background: rgba(0,0,0,0.42);
+    color: #ffffff;
+    font-family: Arial, sans-serif;
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    cursor: pointer;
+    z-index: 100;
+    display: none;
+    transition: background 0.15s ease, color 0.15s ease, transform 0.15s ease;
+  }
+
+  #audioButton { right: 12px; }
+  #skipButton { right: 92px; }
+
+  .topButton.active,
+  .topButton:hover,
+  .topButton:focus-visible {
+    background: rgba(255,216,107,0.92);
+    color: #111111;
+    transform: translateY(-1px);
+    outline: none;
+  }
+
+  /* 暗転フェード */
+  #fadeBlack {
+    position: fixed;
+    inset: 0;
+    background: #000000;
+    opacity: 0;
+    pointer-events: none;
+    z-index: 120;
+    transition: opacity 0.25s ease;
+  }
+
+  #fadeBlack.active { opacity: 0.6; }
+
+  #fadeBlack.longFade {
+    transition: opacity 0.9s ease;
+    opacity: 1;
+  }
+
+  /* 手袋を買いに専用：上に画像、下にテキスト */
+  .illustrationMode #mainScreen {
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center 17vh;
+    background-color: #000;
+  }
+
+  .illustrationMode #standImage {
+    display: none !important;
+  }
+
+  .illustrationMode #textbox {
+    left: 0;
+    right: 0;
+    bottom: 0;
+    min-height: 34vh;
+    max-height: 40vh;
+    border-radius: 18px 18px 0 0;
+  }
+
+  .illustrationMode #choices {
+    left: 5vw;
+    right: 5vw;
+    bottom: 42vh;
+  }
+  
+  
+  /* PC表示用の上書き */
+  @media (min-width: 800px) {
+    #standImage {
+      height: min(82vh, 900px);
+      bottom: 0;
+    }
+
+    #textbox {
+      left: 8%;
+      right: 8%;
+      bottom: 7%;
+      min-height: 190px;
+      max-height: 260px;
+      padding: 24px 24px 34px;
+    }
+
+    #choices {
+      left: 8%;
+      right: 8%;
+      bottom: calc(7% + 220px);
+    }
+
+    #infoButtons {
+      flex-direction: row;
+      justify-content: center;
+    }
+
+    .infoButton {
+      width: auto;
+      min-width: 260px;
+    }
+
+    #infoPanel {
+      width: min(74vw, 1220px);
+      border-radius: 72px;
+      padding: 50px 70px;
+    }
+
+    .topButton { top: 18px; }
+    #audioButton { right: 18px; }
+    #skipButton { right: 100px; }
+  }
+</style>
 </head>
+
 <body>
-    <div class="container">
-        <h1>準備中</h1>
-        <p>6月19日公開予定</p>
-		<p>公開までしばらくお待ちください。</p>
+<section id="noticeScreen" class="screen">
+  <div id="noticeText">
+    このゲームは国語表現授業内で<br>制作されたものです<br>
+    作品元の著者・出版社様とは<br>一切関係ありません<br>
+    内容はすべてフィクションです<br>
+    音が出ます。
+  </div>
+  <div id="noticeGuide">クリック / Enterで進む</div>
+</section>
+
+<section id="titleScreen" class="screen">
+  <button id="prevGameButton" class="titleArrow">←</button>
+  <div id="titleContent">
+    <h1 id="gameTitle"></h1>
+    <div id="gameCaption"></div>
+    <button id="startButton">スタート</button>
+  </div>
+  <button id="nextGameButton" class="titleArrow">→</button>
+</section>
+
+<section id="mainScreen" class="screen">
+  <img id="standImage" src="" alt="立ち絵">
+  <div id="choices"></div>
+  <div id="textbox">
+    <div id="name"></div>
+    <div id="text"></div>
+    <div id="next">▼ 次へ</div>
+  </div>
+</section>
+
+<section id="endScreen" class="screen">
+  <div id="endTitle"></div>
+  <div id="endMessage"></div>
+  <div id="endGuide">クリック / Enterで進む</div>
+  <img id="endMark" src="ending_mark.png" alt="制作・著作マーク">
+</section>
+
+<section id="infoScreen" class="screen">
+  <div id="infoPanel">
+    <h1 id="workTitle"></h1>
+    <div id="workAuthor"></div>
+    <div id="workDescription"></div>
+    <div id="infoButtons">
+      <button id="restartButton" class="infoButton">もう一度遊ぶ</button>
+      <button id="backTitleButton" class="infoButton">タイトルに戻る</button>
     </div>
+  </div>
+</section>
+
+<button id="audioButton" class="topButton">AUDIO</button>
+<button id="skipButton" class="topButton">SKIP</button>
+
+<div id="fadeBlack"></div>
+ //おおもと//
+<audio id="titleBgm" src="title_bgm.mp3" loop></audio>
+<audio id="mainBgm" src="main_bgm.mp3" loop></audio>
+<audio id="altBgm" src="alt_bgm.mp3" loop></audio>
+<audio id="decisionSound" src="decision.mp3"></audio>
+<audio id="breakSound" src="se_break.mp3"></audio>
+<audio id="memeBgm" src="ミーム.mp3"></audio>
+  
+ //手袋//
+<audio id="手袋mainBgm" src="雪空.mp3" loop></audio>
+<audio id="asaBgm" src="asa.mp3" loop></audio>
+<audio id="oyaBgm" src="おやすみの時間.mp3" loop></audio>
+<audio id="osikuraBgm" src="おしくらシマエナガ.mp3" loop></audio>
+<audio id="kodokuBgm" src="孤独な道行き.mp3" loop></audio>  
+<audio id="kisekiBgm" src="雪の朝に奇跡を.mp3" loop></audio>
+<audio id="yukiBgm" src="White_snow_chill_days.mp3" loop></audio>
+  
+//こころ//
+<audio id="kokorobgm" src="mainbgm.mp3" loop></audio>
+
+<script>
+  /* =========================================================
+     少年の日の思い出
+     ========================================================= */
+
+  const shonenScenario = {
+    start: {
+      bg: "mikan",
+      character: "none",
+      bgm: "ミーム",
+      sound: "break",
+      text:"完成しませんでした……",
+      endTitle: "【速報】未完",
+      endMessage: "すみませんでした"
+    }
+  };
+
+  /* 手袋を買いに*/
+  const tebukuroScenario = {
+    start: {
+
+      bg: "",
+      name: "",
+      character: "none",
+      bgm: "yuki",
+      text: "Start♪",
+      next: "yuki"
+    },
+
+      yuki: {
+      bg: "yama",
+      name: "",
+      character: "none",
+      bgm: "kiseki",
+      text: "寒い冬が北方から、狐の親子の棲(す)んでいる森へやって来ました。",
+      next: "yukiiti"
+    },
+
+      yukiiti: {
+      bg: "yama",
+    　name: "子ぎつね",
+      character: "none",
+      bgm: "kiseki",
+      text: "「お母ちゃん、お手々が冷たい、お手々がじんじんする」",
+      next: "yukini"
+    },
+      yukini: {
+    　bg: "yama",
+      name: "",
+      character: "none",
+      bgm: "kiseki",
+      text: "子狐は、濡れて牡丹色になった両手を母さん狐の前にさしだしました。母さん狐は、その手に、は――っと息をふっかけて、ぬくとい母さんの手でやんわり包んでやりながら、",
+      next: "yukisan"
+    },
+
+      yukisan: {
+    　bg: "yama",
+      name: "母さんぎつね",
+      character: "none",
+      bgm: "kiseki",
+      text: "「もうすぐ暖くなるよ、雪をさわると、すぐ暖くなるもんだよ」",
+      next: "yukiyon"
+    },
+      yukiyon: {
+    　bg: "yama",
+      name: "",
+      character: "none",
+      bgm: "kiseki",
+      text: "と言いましたが、かあいい坊やの手に霜焼けができてはかわいそうだから、夜になったら、町まで行って、坊やのお手々にあうような、毛糸の手袋を買わせてやろうと思いました。",
+      next: "teiti"
+    },
+
+      teiti: {
+      bg: "yama",
+      name: "母さんぎつね",
+      character: "none",
+      bgm: "kiseki",
+      text: "「坊やお手々を片方お出し」",
+      next: "teni"
+    },
+    
+      
+　　　teni: {
+      bg: "yama",
+      name: "",
+      character: "none",
+      bgm: "kiseki",
+      text: "母さん狐はその手をしばらく握っている間に、可愛いい人間の子供の手にしてしまいました。",
+      next: "tenini"
+    },
+    
+      tenini: {
+      bg: "yama",
+      name: "子ぎつね",
+      character: "none",
+      bgm: "kiseki",
+      text: "「何だか変だな母ちゃん、これなあに？」",
+      next: "tesan"
+    },
+
+      tesan: {
+      bg: "yama",
+      name: "母さんぎつね",
+      character: "none",
+      bgm: "kiseki",
+      text: "「それは人間の手よ。いいかい坊や、町へ行ったらね、トントンと戸を叩たたいて、こっちの手、ほらこの人間の手をさし入れてね、この手にちょうどいい手袋頂戴って言うんだよ」",
+      next: "teyon"
+    },
+
+    　teyon: {
+      bg: "yama",
+      name: "母さんぎつね",
+      character: "none",
+      bgm: "kiseki",
+      text: "「わかったね、決して、こっちの手を出しちゃいけないよ」",
+      next: "tego"
+    },
+      
+      tego: {
+      bg: "yama",
+      name: "母さんぎつね",
+      character: "none",
+      bgm: "kiseki",
+      text: "母さんの狐はそう言って、持って来た二つの白銅貨を、人間の手の方へ握らせてやりました。",
+      next: "teroku"
+    },
+
+    teroku: {
+      bg: "mati",
+      name: "",
+      character: "none",
+      bgm: "yuki",
+      text: "　子供の狐は、町の灯を目あてに、雪あかりの野原をよちよちやって行きました。",
+      next: "Firstsentaku"
+    },
+    
+    Firstsentaku: {
+      bg: "mati",
+      name: "",
+      character: "none",
+      bgm: "yuki",
+      text: "どこに行こう？",
+      choices: [
+        {
+          text: "帽子屋",
+          next: "bousiya",
+        },
+        {
+          text: "駄菓子屋",
+          next: "dagasiya",
+        },
+        {
+          text: "路地裏",
+          next: "rojiura",
+        }
+      ]
+    },
+      
+bousiya: {
+  bg: "tonomae",
+  name: "",
+  character: "none",
+  bgm: "yuki",
+  text: "黒い大きなシルクハットの帽子の看板が、青い電燈に照らされてかかっていました。",
+  next: "bousiiti"
+},
+
+      bousiiti: {
+      bg: "tonomae",
+      name: "",
+      character: "none",
+      bgm: "yuki",
+      text: "　子狐は教えられた通り、トントンと戸を叩きました。",
+      next:"bousini"
+},
+      bousini: {
+      bg: "tonomae",
+      name: "子ぎつね",
+      character: "none",
+      bgm: "yuki",
+      text: "「今晩は」",
+      next:"Secondsentaku"
+},
+
+dagasiya: {
+      bg: "tonomae",
+      name: "",
+      character: "none",
+      bgm: "yuki",
+      text: "街から少し外れたところに、のれんがかかった小さな店がありました。",
+      next:"dagasini"
+},
+      dagasini: {
+      bg: "tonomae",
+      name: "",
+      character: "none",
+      bgm: "yuki",
+      text: "店には戸がないので、戸の隙間から人間の手を入れることもできず、子狐は困って下を向きました。",
+      next:"dagasisan"
+},
+      dagasisan: {
+      bg: "tonomae",
+      name: "",
+      character: "none",
+      bgm: "yuki",
+      text: "するとふと、お菓子の紙やゴミで散らばった地面の上に、",
+      next:"dagasiyon"
+},
+
+      dagasiyon: {
+      bg: "tebukuro",
+      name: "",
+      character: "none",
+      bgm: "yuki",
+      text: "誰かが落としたのでしょうか、小さな手袋を見つけました。",
+      next:"dagasigo"
+},
+
+      dagasigo: {
+      bg: "tebukuro",
+      name: "",
+      character: "none",
+      bgm: "yuki",
+      text: "子狐は駆け寄って、その匂いを嗅ぎました。",
+      next:"dagasiroku"
+},
+      dagasiroku: {
+      bg: "tebukuro",
+      name: "",
+      character: "none",
+      bgm: "yuki",
+      text: "手袋は少しだけ破けていましたが、伸ばしたり、引っ張ったりしてみても無事なようでした。",
+      next:"dagasinana"
+},
+      dagasinana: {
+      bg: "tebukuro",
+      name: "",
+      character: "none",
+      bgm: "yuki",
+      text: "子狐は手袋を手にはめました。",
+      next:"dagasihati"
+},
+      dagasihati: {
+      bg: "tebukuro",
+      name: "",
+      character: "none",
+      bgm: "yuki",
+      text: "そして嬉しくなって、元きた道を帰り始めました。",
+      next:"dagasikyu"
+},
+      dagasikyu: {
+      bg: "mati",
+      name: "",
+      character: "none",
+      bgm: "yuki",
+      text: "ある窓の下を通りかかると、人間の声がしていました。",
+      next:"dagasijyu"
+},
+      dagasijyu: {
+      bg: "mati",
+      name: "人間",
+      character: "none",
+      bgm: "oya",
+      text: "「ねむれ　ねむれ　母の胸に、",
+      next:"dagasisiiti"
+},
+　　　dagasisiiti: {
+      bg: "mati",
+      name: "人間",
+      character: "none",
+      bgm: "oya",
+      text: "「ねむれ　ねむれ　母の手に――」",
+      next:"dagasisini"
+},
+      dagasisini: {
+      bg: "mati",
+      name: "",
+      character: "none",
+      bgm: "oya",
+      text: "子狐はその唄声(うたごえ)は、きっと人間のお母さんの声にちがいないと思いました。",
+      next:"dagasisisan"
+},
+      
+      dagasisisan: {
+      bg: "mati",
+      name: "",
+      character: "none",
+      bgm: "oya",
+      text: "だって、子狐が眠る時にも、やっぱり母さん狐は、あんなやさしい声でゆすぶってくれるからです。",
+      next:"dagasisiyon"
+},
+
+      dagasisiyon: {
+      bg: "mati",
+      name: "",
+      character: "none",
+      bgm: "oya",
+      text: "子狐は急にお母さんが恋しくなって、お母さん狐の待っている方へ跳んで行きました。",
+      next:"dagasisigo"
+},
+      dagasisigo: {
+      bg: "tadaima",
+      name: "",
+      character: "none",
+      bgm: "oya",
+      text: "お母さん狐は坊やが来ると、坊やを暖かい胸に抱きしめて、喜びました。",
+      next:"endA"
+},
+      endA: {
+      bg: "tadaima",
+      character: "none",
+      bgm: "oya",
+      text: "",
+      endTitle: "End 1",
+      endMessage: "＜青い手袋＞\n HAPPYEND",
+    },
+
+
+rojiura: {
+      bg: "mati",
+      name: "",
+      character: "none",
+      bgm: "yuki",
+      text: "始めのうちは一つきりだった灯が、二つになり三つになり、はては十にもふえました。",
+      next:"rojini"
+},
+
+      rojini: {
+      bg: "mati",
+      name: "",
+      character: "none",
+      bgm: "yuki",
+      text: "狐の子供はそれを見て、灯には、星と同じように、赤いのや黄いのや青いのがあるんだなと思いました。",
+      next:"rojisan"
+},
+      rojisan: {
+      bg: "mati",
+      name: "",
+      character: "none",
+      bgm: "yuki",
+      text: "やがて町にはいりましたが、通りの家々はもうみんな戸を閉しめてしまって、高い窓から暖かそうな光が道の雪の上に落ちているばかりでした。",
+      next:"rojiyon"
+},
+
+      rojiyon: {
+      bg: "mati",
+      name: "",
+      character: "none",
+      bgm: "yuki",
+      text: "子狐は辺りをさまよい歩いているうちに、いつの間にか、狭い路地へと入り込んでいきました。",
+      next:"rojigo"
+},
+
+      rojigo: {
+      bg: "roji",
+      name: "",
+      character: "none",
+      bgm: "kodoku",
+      text: "灯のない路地は暗く、狭く、両側の壁に今にも押しつぶされそうでした。",
+      next:"rojiroku"
+},
+      
+      rojiroku: {
+      bg: "roji",
+      name: "",
+      character: "none",
+      bgm: "kodoku",
+      text: "子狐はぶるりと身震いをし、来た道を引き返そうとしました。",
+      next:"rojinana"
+},
+      
+      rojinana: {
+      bg: "roji",
+      name: "",
+      character: "none",
+      bgm: "kodoku",
+      text: "その途端",
+      next:"rojihati"
+},
+
+      rojihati: {
+      bg: "roji",
+      name: "〇〇",
+      character: "none",
+      bgm: "kodoku",
+      text: "「ー狐だ！」",
+      next:"rojikyu"
+},
+  　  rojikyu: {
+      bg: "roji",
+      name: "△△",
+      character: "none",
+      bgm: "kodoku",
+      text: "「路地裏に狐がいるぞ！」",
+      next:"rojijyu"
+},
+
+    rojijyu: {
+      bg: "roji",
+      name: "",
+      character: "none",
+      bgm: "kodoku",
+      text: "子狐は踵を返し、路地の奥へ駆け出しました。その後ろを、見たこともない二本足の生き物が、手になにか棒のような物を持って、子狐を追いかけてきました。",
+      next:"rojijiiti"
+},
+      rojijiiti: {
+      bg: "roji",
+      name: "",
+      character: "none",
+      bgm: "kodoku",
+      text: "子狐は、あれは人間に違いないと思いました。",
+      next:"rojijini"
+},
+      rojijini: {
+      bg: "roji",
+      name: "",
+      character: "none",
+      bgm: "kodoku",
+      text: "しかしどうしてか、体は全力で、人間から遠ざかるように動くのです。",
+      next:"rojijisan"
+},
+
+      rojijisan: {
+      bg: "roji",
+      name: "",
+      character: "none",
+      bgm: "kodoku",
+      text: "後ろから、片方の人間が何かを叫びました。",
+      next:"rojijiyon"
+},
+
+      rojijiyon: {
+      bg: "roji",
+      name: "",
+      character: "none",
+      bgm: "kodoku",
+      text: "子狐はつまづき、もつれながら、行き場のない路地の奥へと走りました。",
+      next:"end2"
+},
+
+      end2: {
+      bg: "roji",
+      character: "none",
+      bgm: "kodoku",
+      text: "",
+      endTitle: "End 2",
+      endMessage: "＜路地裏＞\nBADEND"
+},
+
+    
+Secondsentaku: {
+  bg: "tonomae",
+  name: "",
+  character: "none",
+  bgm: "main",
+  text: "どの手を出す？",
+  choices: [
+    {
+      text: "人間の左手",
+      next: "ningente"
+    },
+    {
+      text: "狐の右手",
+      next: "kitunenote"
+    },
+    {
+      text: "人間の手と狐の手",
+      next: "ryoute"
+    }
+  ]
+},
+
+ningente: {
+      bg: "tonomae",
+      name: "",
+      character: "none",
+      bgm: "yuki",
+      text: "　中では何かことこと音がしていましたが、やがて戸が一寸ほどゴロリとあいて、光の帯が道の白い雪の上に長く伸びました。",
+      next: "ningen"
+    },
+
+    　ningen: {
+        bg: "tonomae",
+      	name: "",
+      	character: "none",
+      	bgm: "yuki",
+      	text: "　子狐は人間の手を、すきまからさしこんで言いました。",
+      	next: "ningeniti"
+    　},
+
+      ningeniti: {
+        bg: "tonomae",
+      	name: "子ぎつね",
+      	character: "none",
+      	bgm: "yuki",
+      	text: "「このお手々にちょうどいい手袋下さい」",
+      	next: "ningenni"
+    　},
+
+      ningenni: {
+        bg: "tonomae",
+      	name: "",
+      	character: "none",
+      	bgm: "yuki",
+      	text: "帽子屋さんは棚から子供用の毛糸の手袋をとり出して来て、その手に持たせてやりました。",
+      	next: "ningensan"
+    　},
+
+      ningensan: {
+        bg: "tonomae",
+      	name: "帽子屋",
+      	character: "none",
+      	bgm: "yuki",
+      	text: "「お金をください」",
+      	next: "ningenyon"
+    　},
+
+      ningenyon: {
+        bg: "tonomae",
+      	name: "",
+      	character: "none",
+      	bgm: "yuki",
+      	text: "帽子屋さんがそう言うと、子狐はすなおに、握って来た白銅貨を二つ渡しました。",
+      	next: "ningengo"
+    　},
+
+      ningengo: {
+        bg: "tonomae",
+      	name: "",
+      	character: "none",
+      	bgm: "yuki",
+      	text: "そしてお礼を言って、外に出ました。",
+      	next: "ningenroku"
+    　},
+
+      ningenroku: {
+        bg: "mati",
+      	name: "子ぎつね",
+      	character: "none",
+      	bgm: "yuki",
+      	text: "お母さんは、人間は恐ろしいものだっておっしゃったが、ちっとも恐ろしくないや",
+      	next: "ningennana"
+    　},
+
+      ningennana: {
+        bg: "mati",
+      	name: "",
+      	character: "none",
+      	bgm: "yuki",
+      	text: "子狐はそう思いましたが、いったい人間なんてどんなものか見たいと思いました。",
+      	next: "ningenhati"
+    　},
+
+      ningenhati: {
+        bg: "mati",
+      	name: "",
+      	character: "none",
+      	bgm: "yuki",
+      	text: "そして、そのまま雪の上を歩き出そうとして、背後から近づく足跡に気づきました。",
+      	next: "ningenkyu"
+    　},
+
+      ningenkyu: {
+        bg: "mati",
+      	name: "帽子屋",
+      	character: "none",
+      	bgm: "yuki",
+      	text: "「あんた、おつりを忘れとるよ」",
+      	next: "ningenjyu"
+    　},
+      
+      ningenjyu: {
+        bg: "mati",
+      	name: "",
+      	character: "none",
+      	bgm: "yuki",
+      	text: "先程の帽子屋さんの声がして、子狐は後ろを振り向きました。",
+      	next: "ningengeniti"
+    　},
+
+      ningengeniti: {
+        bg: "mati",
+      	name: "帽子屋",
+      	character: "none",
+      	bgm: "yuki",
+      	text: "「あんたー」",
+      	next: "ningengenni"
+    　},
+
+      ningengenni: {
+        bg: "mati",
+      	name: "",
+      	character: "none",
+      	bgm: "yuki",
+      	text: "帽子屋さんはそこで子狐に気づくと、おやおやと目を丸くして、首を振り、",
+      	next: "ningengensan"
+    　},
+
+      ningengensan: {
+        bg: "mati",
+      	name: "帽子屋",
+      	character: "none",
+      	bgm: "yuki",
+      	text: "「早く行っちまえ、早く」",
+      	next: "ningengenyon"
+    　},
+
+     ningengenyon: {
+        bg: "mati",
+      	name: "",
+      	character: "none",
+      	bgm: "yuki",
+      	text: "と言って、子狐を追い払うのです",
+      	next: "ningengengo"
+    　},
+
+      ningengengo: {
+        bg: "mati",
+      	name: "",
+      	character: "none",
+      	bgm: "yuki",
+      	text: "子狐は仕方なく帽子屋から離れ、もと来た道を歩き始めました。",
+      	next: "ningengenroku"
+    　},
+
+      ningengenroku: {
+        bg: "torakku",
+      	name: "",
+      	character: "none",
+      	bgm: "kodoku",
+      	text: "それからしばらくして、子狐は厚手の服に帽子を被った人間に抱えられ、小さな檻の中に入れられました。麻酔銃で眠らされた子狐はピクリとも動かずに、ぐったりとしておりました。",
+      	next: "ningengennana"
+    　},
+
+      ningengennana: {
+        bg: "torakku",
+      	name: "",
+      	character: "none",
+      	bgm: "kodoku",
+      	text: "子狐を乗せた車は、ゆっくりと動き出しました。",
+      	next: "end3"
+    　},
+
+      end3: {
+      bg: "torakku",
+      character: "none",
+      bgm: "kodoku",
+      text: "",
+      endTitle: "End 3",
+      endMessage: "＜檻の中の手袋＞\nBADEND"
+    },
+
+
+kitunenote: {
+      bg: "tonomae",
+      name: "",
+      character: "none",
+      bgm: "yuki",
+      text: "　中では何かことこと音がしていましたが、やがて戸が一寸ほどゴロリとあいて、光の帯が道の白い雪の上に長く伸びました。",
+      next: "kitune"
+    },
+    	kitune: {
+        bg: "tonomae",
+      	name: "",
+      	character: "none",
+      	bgm: "yuki",
+      	text: "子狐はその光がまばゆかったので、めんくらって、まちがった方の手を、――お母さまが出しちゃいけないと言ってよく聞かせた方の手を、すきまからさしこんでしまいました。",
+      	next: "kituneni"
+    	},
+
+    	kituneni: {
+        bg: "tonomae",
+      	name: "子ぎつね",
+      	character: "none",
+      	bgm: "yuki",
+      	text: "「このお手々にちょうどいい手袋下さい」",
+      	next: "kitunesan"
+    	},
+
+    	kitunesan: {
+        bg: "tonomae",
+      	name: "",
+      	character: "none",
+      	bgm: "yuki",
+      	text: "　すると帽子屋さんは、おやおやと思いました。",
+      	next: "kituneyon"
+    	},
+
+    	kituneyon: {
+        bg: "tonomae",
+      	name: "",
+      	character: "none",
+      	bgm: "yuki",
+      	text: "狐の手です。狐の手が手袋をくれと言うのです。",
+      	next: "kitunego"
+    	},
+      
+      	kitunego: {
+        bg: "tonomae",
+      	name: "帽子屋さん",
+      	character: "none",
+      	bgm: "yuki",
+      	text: "「先にお金をください」",
+      	next: "kituneroku"
+    	},
+      
+        kituneroku: {
+        bg: "tonomae",
+      	name: "",
+      	character: "none",
+      	bgm: "yuki",
+      	text: "帽子屋さんがそう言うと、子狐はすなおに、握って来た白銅貨を二つ渡しました。",
+      	next: "kitunenana"
+    	},
+
+      kitunenana: {
+        bg: "tonomae",
+      	name: "",
+      	character: "none",
+      	bgm: "yuki",
+      	text: "帽子屋さんはそれを人差し指の先にのっけて、これは木の葉じゃない、ほんとのお金だと思いましたので、棚から子供用の毛糸の手袋をとり出して来て、子狐の手に持たせてやりました。",
+      	next: "kitunehati"
+    	},
+      
+      kitunehati: {
+        bg: "tonomae",
+      	name: "",
+      	character: "none",
+      	bgm: "yuki",
+      	text: "子狐は、お礼を言ってまた、もと来た道を帰り始めました。",
+      	next: "tebukuroiti"
+    	},
+
+    　tebukuroiti: {
+        bg:"mati",
+      	name: "",
+      	character: "none",
+      	bgm: "yuki",
+      	text: "お母さん狐は、心配しながら、坊やの狐の帰って来るのを、\n今か今かとふるえながら待っていましたので、",
+      	next: "tebukuroitiiti"
+    	},
+
+        tebukuroitiiti: {
+        bg:"tadaima",
+        name: "",
+      	character: "none",
+      	bgm: "asa",
+      	text: "坊やが来ると、暖い胸に抱きしめて泣きたいほどよろこびました。",
+      	next: "tebukuroni"
+    	},
+
+
+        tebukuroni: {
+        bg:"tadaima",
+      	name: "子ぎつね",
+      	character: "none",
+      	bgm: "asa",
+      	text: "「母ちゃん、人間ってちっとも恐かないや」",
+      	next: "tebukurosan"
+    	},
+
+    　  tebukurosan: {
+        bg:"tadaima",
+      	name: "お母さんぎつね",
+      	character: "none",
+      	bgm: "asa",
+      	text: "「どうして？」",
+      	next: "tebukuroyon"
+    	},
+
+        tebukuroyon: {
+        bg:"tadaima",
+      	name: "子ぎつね",
+      	character: "none",
+      	bgm: "asa",
+      	text: "「坊、間違えてほんとうのお手々出しちゃったの。でも帽子屋さん、掴まえやしなかったもの。ちゃんとこんないい暖い手袋くれたもの」",
+      	next: "tebukurogo"
+    	},
+      
+
+      tebukurogo: {
+        bg:"tadaima",
+      	name: "",
+      	character: "none",
+      	bgm: "asa",
+      	text: "子狐はそう言って、手袋のはまった両手をパンパンやって見せました。",
+      	next: "tebukuroroku"
+    	},
+
+      tebukuroroku: {
+        bg:"tadaima",
+      	name: "",
+      	character: "none",
+      	bgm: "asa",
+      	text: "お母さん狐はまあとあきれましたが、",
+      	next: "tebukuronana"
+    	},
+
+      tebukuronana: {
+        bg:"tadaima",
+      	name: "お母さんぎつね",
+      	character: "none",
+      	bgm: "asa",
+      	text: "「ほんとうに人間はいいものかしら。ほんとうに人間はいいものかしら」",
+      	next: "tebukurohati"
+    	},
+
+        tebukurohati: {
+        bg:"tadaima",
+      	name: "",
+      	character: "none",
+      	bgm: "asa",
+      	text: "とつぶやきました。",
+      	next: "end4"
+    	},
+
+          
+    end4: {
+      bg: "tadaima",
+      character: "none",
+      bgm: "asa",
+      text: "",
+      endTitle: "End 4",
+      endMessage: "<赤い手袋>\nTRUEEND"
+    },
+
+ryoute:{
+      bg: "tonomae",
+      name: "",
+      character: "none",
+      bgm: "yuki",
+      text: "　中では何かことこと音がしていましたが、やがて戸が一寸ほどゴロリとあいて、光の帯が道の白い雪の上に長く伸びました。",
+      next: "ryouteiti"
+    },
+
+      ryouteiti:{
+      bg: "tonomae",
+      name: "",
+      character: "none",
+      bgm: "yuki",
+      text: "　子狐はその光がまばゆかったので、めんくらって、両方の手を、――お母さんが変えてくれた人間の手と狐の手を同時に、すきまからさしこんでしまいました。",
+      next: "ryouteni"
+    },
+
+
+      ryouteni:{
+      bg: "tonomae",
+      name: "子ぎつね",
+      character: "none",
+      bgm: "yuki",
+      text: "「このお手々にちょうどいい手袋下さい」",
+      next: "ryoutesan"
+    },
+
+　　　ryoutesan:{
+      bg: "tonomae",
+      name: "",
+      character: "none",
+      bgm: "yuki",
+      text: "帽子屋さんは驚いて、二つの手をしげしげと眺めました。",
+      next: "ryouteyon"
+    },
+      
+      ryouteyon:{
+      bg: "tonomae",
+      name: "",
+      character: "none",
+      bgm: "yuki",
+      text: "こんなことをするのは、きっと子供のいたずらに違いない。",
+      next: "ryoutego"
+    },
+
+      ryoutego:{
+      bg: "tonomae",
+      name: "",
+      character: "none",
+      bgm: "yuki",
+      text: "帽子屋さんは何か、適当な物を渡して返ってもらおうと思い、",
+      next: "ryouteroku"
+    },
+
+      ryouteroku:{
+      bg: "tonomae",
+      name: "",
+      character: "none",
+      bgm: "yuki",
+      text: "棚から売れ残りの、派手な手袋を取り出してきて、その両手の上に置きました。",
+      next: "ryoutenana"
+    },
+
+      ryoutenana:{
+      bg: "tonomae",
+      name: "",
+      character: "none",
+      bgm: "yuki",
+      text: "子狐は、お礼を言ってまた、もと来た道を帰り始めました。",
+      next: "ryoutehati"
+    },
+
+      ryoutehati:{
+      bg: "mati",
+      name: "",
+      character: "none",
+      bgm: "yuki",
+      text: "手にはめた手袋があったかくて、子狐は両手をパンパンと叩きました。",
+      next: "ryoutekyu"
+    },
+
+      ryoutekyu:{
+      bg: "mati",
+      name: "",
+      character: "none",
+      bgm: "yuki",
+      text: "街頭の灯に照らされて、スパンコールの付いた手袋はキラキラと輝いていました。",
+      next: "ryoutejyu"
+    },
+
+      ryoutejyu:{
+      bg: "mati",
+      name: "",
+      character: "none",
+      bgm: "yuki",
+      text: "子狐は家の中の、オレンジ色の光を見つめて歩いていましが、ふと羽音が聞こえた気がして、頭上を見上げました。",
+      next: "ryouteteiti"
+    },
+
+      ryouteteiti:{
+      bg: "mati",
+      name: "",
+      character: "none",
+      bgm: "yuki",
+      text: "そこで、子狐はびっくりして立ち止まりました。",
+      next: "ryouteteni"
+    },
+
+      ryouteteni:{
+      bg: "karasu",
+      name: "",
+      character: "none",
+      bgm: "osikura",
+      text: "カラスの群れが、勢いよくこちらへ向かってくるのです。",
+      next: "ryoutetesan"
+    },
+
+      ryoutetesan:{
+      bg: "karasu",
+      name: "子ぎつね",
+      character: "none",
+      bgm: "osikura",
+      text: "「やめて、来ないで！」",
+      next: "ryouteteyon"
+    },
+
+      ryouteteyon:{
+      bg: "karasu",
+      name: "",
+      character: "none",
+      bgm: "osikura",
+      text: "しかし、勢いは止まる様子もなく、子狐の元へ着いた途端、カラスたちはキラキラ輝く手袋をつつき回しました。",
+      next: "ryoutetego"
+    },
+      
+      ryoutetego:{
+      bg: "karasu",
+      name: "",
+      character: "none",
+      bgm: "osikura",
+      text: "子狐は抵抗しましたが、掴まれた手袋は手からすり抜け、カラスのくちばしに移りました。",
+      next: "ryouteteroku"
+    },
+
+      ryouteteroku:{
+      bg: "karasu",
+      name: "",
+      character: "none",
+      bgm: "osikura",
+      text: "子狐はただ震えながら、過ぎ去っていくカラスの群れを見上げました。",
+      next: "end5"
+    },
+
+      end5: {
+      bg: "karasu",
+      character: "none",
+      bgm: "osikura",
+      text: "",
+      endTitle: "End 5",
+      endMessage: "<スパンコールの手袋>\nBADEND"
+    },
+  };
+
+  /* こころ */
+const kokoroScenario = {
+  start: {
+    bg: "room",
+    character: "K",
+    bgm: "main",
+    pages:[
+      {text: "――あらすじ――"},
+      {text: "学生時代の「先生」（「私」）は、未亡人の奥さんとその娘であるお嬢さんの家に下宿していた。"},
+      {text: "私は下宿先の生活の中でお嬢さんに好意を抱くようになる。しかし、その気持ちは誰にも打ち明けていなかった。"},
+      {text: "その後、「私」の幼なじみであるKが養家との問題から同じ下宿で暮らし始める。"},
+      {text: "Kは私が敵わない相手だと認識するほど真面目な人物だった。そのため私は、Kが恋愛に興味を持つことはないと思い込んでいた。"},
+      {text: "ところが、Kもまたお嬢さんに惹かれていると発覚してしまう。"},
+    ],
+    next: "scene1_1"
+  },
+
+  scene1_1: {
+    bg: "room",
+    character: "K",
+    bgm: "main",
+    pages:[
+      {name:"K", text: "「実は……僕は、お嬢さんを愛している。」"},
+      {text: "私は返事をすることが出来なかった。\nKの口から、そのような言葉を聞く日が来ようとは思っていなかったのである。"},
+      {name:"K", text: "「軽蔑するか。」"},
+      {text:"Kは静かに笑った。しかしその笑いには、いつものような冷静さがなかった。"},
+      {name:"K", text:"「僕は、自分でも可笑しいと思う。」"},
+      {text:"私はその場では何も言わなかった。しかし、しばらくKの言葉を忘れることができなかった。"},
+    ],
+    next: "scene1_2"
+  },
+
+  scene1_2: {
+    bg: "room",
+    character: "none",
+    bgm: "main",
+    pages:[
+      {text:"――翌日"},
+      {name:"私", text:"「K。昨日のことだが……」"},
+    ],
+    next: "scene1_3"
+  },
+
+  scene1_3: {
+    bg: "room",
+    character: "K",
+    bgm: "main",
+    pages:[
+      {name:"K", text:"「何だ。」"}
+    ],
+    next: "FirstChoice"
+  },
+
+  FirstChoice: {
+    bg: "room",
+    name: "",
+    character: "K",
+    bgm: "main",
+    text: "私は躊躇した。だが、沈黙を重ねるほど、本当の気持ちを話した方が良いという考えが頭をよぎった。",
+    choices: [
+      {
+        text: "「実は……私も、お嬢さんを思っている。」",
+        next: "afterChoiceA",
+        set: { kokoroFirst: "A" }
+      },
+      {
+        text: "「いや、なんでもない。」",
+        next: "afterChoiceB",
+        set: { kokoroFirst: "B" }
+      },
+    ]
+  },
+
+  afterChoiceA: {
+    bg: "room",
+    character: "K",
+    bgm: "main",
+    pages:[
+      {text: "私は彼の顔を見ることが出来なかった。"},
+      {name:"K", text: "「……そうか。」"},
+      {name:"私", text: "「黙っていてすまなかった。」"},
+      {text:"しばらくして、Kはぽつりと言った。"},
+      {name:"K", text:"「ならば、君も苦しかったのだな。」"},
+      {text:"私は初めて、Kが苦しんでいるということに気が付いた。"},
+      {text:"それきり、私たちは長いこと黙っていた。\nしかし、その沈黙は以前のものとは違っていた。"}
+    ],
+    next: "scene2_1"
+  },
+
+  afterChoiceB: {
+    bg: "room",
+    character: "K",
+    bgm: "main",
+    pages:[
+      {name:"K", text:"「？……そうか。」"},
+      {text:"やはり、Kにこのことを伝えるべきではないと感じた。"}
+    ],
+    next:"scene2_1"
+  },
+
+  scene2_1: {
+    bg: "library",
+    character: "K",
+    bgm: "main",
+    pages:[
+      {text:"――数日後"},
+      {text:"図書館で調べものをしているとKが話しかけてきた。"},
+      {name:"K", text:"「一緒に散歩でもしないか」"},
+      {name:"私", text:"「……少し待っていてくれ。」"}
+    ],
+    next: "SecondChoice"
+  },
+
+  SecondChoice: {
+    bg: "library",
+    name: "K",
+    character: "K",
+    bgm: "main",
+    text: "「先日話したことだが……どう思う。」",
+    choices: [
+      {
+        text: "「精神的に向上心のないものは、馬鹿だ。」",
+        next: "afterChoiceC",
+        set: { kokoroSecond: "C" }
+      },
+      {
+        text: "「悪いことではないと思う。」",
+        next: "afterChoiceD",
+        set: { kokoroSecond: "D" }
+      },
+    ]
+  },
+
+  afterChoiceC: {
+    bg: "main",
+    character: "K",
+    bgm: "main",
+    pages:[
+      {text:"この言葉は今のKにとって痛いに違いなかった。"},
+      {text:"以前Kが私に放ったこの言葉は今の彼にとって痛いに違いなかった。"},
+      {name:"私", text:"「精神的に向上心のないものは、馬鹿だ。」"},
+      {text:"私は二度同じ言葉を繰り返した。"},
+      {name:"K", text:"「馬鹿だ。」"},
+      {name:"K", text:"「僕は馬鹿だ。」"},
+      {text:"Kはぴたりとその場に立ち止まって動かなかった。"}
+    ],
+    next: "scene3"
+  },
+
+  afterChoiceD: {
+    bg: "library",
+    name: "K",
+    character: "K",
+    bgm: "main",
+    text: "「なぜだ？君は、僕が精進を掲げておきながら色恋にうつつを抜かす意志薄弱な人間だと思わないのか」",
+    choices: [
+      {
+        text: "「少しくらい遊んだほうがいい。」",
+        next: "afterChoiceE",
+        set: { kokoroThird: "E" }
+      },
+      {
+        text: "「恋愛から学べることも多い。」",
+        next: "afterChoiceF",
+        set: { kokoroThird: "F" }
+      },
+    ]
+  },
+
+  afterChoiceE: {
+    bg: "park",
+    character: "K",
+    bgm: "main",
+    pages:[
+      {name:"K", text: "「……本当にそうだろうか。」"},
+      {name:"私", text: "「前から思っていたが、君は我慢のしすぎだ。『精進』と言っても極端すぎる。\n少しくらい恋愛をして知見を広めることも大切なのではないだろうか。」"},
+      {name:"K", text:"「……」" },
+      {text:"Kは答えなかった。"},
+    ],
+    next: "scene3"
+  },
+
+  afterChoiceF: {
+    bg: "park",
+    character: "K",
+    bgm: "main",
+    pages:[
+      {name:"K", text: "「……本当にそうだろうか。\"」"},
+      {name:"私", text:"「誰かを思うことで、自分の弱さを知ることもある。人の痛みを知ることもある。\n精進だけでは分からないことを、人との関わりで学べるのではないか"},
+      {name:"K", text:"「⋯⋯」"},
+      {text:"Kは答えない"},
+      {name:"私", text:"「恋をするからといって、志を諦めるということにはならないだろう。」"},
+      {name:"私", text:"「それに、お嬢さんが君の一途な思いを受け入れないことがあるだろうか。」"},
+      {name:"私", text:"「……君は手助けなんか要らないと思っているだろうけど、迷ってるのなら僕でも話くらいは聞くよ。」"},
+      {name:"K", text:"「……すまない。」"},
+      {name:"私", text:"「謝らなくていい。」"},
+      {text:"Kは下を向いていて彼の表情はわからなかった。"}
+    ],
+    next: "scene3"
+  },
+
+  scene3: {
+    bg: "living",
+    character: "none",
+    bgm: "main",
+    pages:[
+      {text: "Kとお嬢さんのことが、頭から離れない。"},
+      {text: "私は仮病を使って学校を休み、Kもお嬢さんもいなくなった頃を見計らって奥さんのところへ行った。"},
+      {text:"私は少し迷った。\nだがここで言わなければ、何か取り返しのつかないことになってしまうような気がした。" }
+    ],
+    next: "FourthChoice"
+  },
+
+  FourthChoice: {
+    bg: "living",
+    name: "私",
+    character: "okusan",
+    bgm: "main",
+    text: "「実は、少しお話ししたいことがあります。」",
+    choices: [
+      {
+        text: "お嬢さんに結婚を申し込む",
+        next: "afterChoiceG",
+        set: { kokoroFourth: "G" }
+      },
+      {
+        text: "Kやお嬢さんとの関係を相談",
+        next: "afterChoiceH",
+        set: { kokoroFourth: "H" }
+      },
+      {
+        text: "Kとお嬢さんの関係を取り持つように頼む",
+        next: "afterChoiceI",
+        set: { kokoroFourth: "I" },
+        hideIf: () => state.kokoroSecond === "C"
+      },
+    ]
+  },
+
+  afterChoiceG: {
+    bg: "living",
+    character: "okusan",
+    bgm: "main",
+    pages:[
+      {name:"私", text: "「お嬢さんを私に下さい。下さい、ぜひ下さい。」"},
+      {name:"奥さん", text: "「よく考えたのですか。」"},
+      {name:"奥さん", text:"「……よござんす。差し上げましょう。」" },
+      {name:"奥さん", text:"「大丈夫です。本人が不承知のところへ、私があの子をやるはずがありませんから。」" },
+      {text: "これで私の運命は思うままに定められたのだという達成感があった。"},
+      {text: "しかし、あまりにも順調に進んだのでかえって変な気持ちになった。"}
+    ],
+    next: "kokoroJudge"
+  },
+
+  afterChoiceH: {
+    bg: "living",
+    character: "okusan",
+    bgm: "main",
+    pages:[
+      {name:"私", text: "「私は、お嬢さんを思っています。しかし、実はKもお嬢さんのことを思っています。」"},
+      {name:"私", text:"「私は友人を大切にしたい、でもお嬢さんのことも諦められない。どうすれば良いのでしょうか。」" },
+      {text:"奥さんは困ったような顔をした。" },
+      {name:"奥さん", text: "「Kさんも、同じお気持ちなのでしょうね。」"},
+      {text:"奥さんは静かにため息をついた。" },
+      {name:"奥さん", text: "「誰かを好きになるのは悪いことではありませんが、誰も傷つかずに済む道があるかと聞かれたら、私にも分かりません。」"},
+      {name:"奥さん", text: "「ただ、お互いに嘘をつかないで下さい。」"},
+      {text: "私は黙って頭を下げた。"}
+    ],
+    next: "kokoroJudge"
+  },
+
+  afterChoiceI: {
+    bg: "living",
+    character: "okusan",
+    bgm: "main",
+    pages:[
+      {name:"私", text: "「Kのことなのですが、お嬢さんに想いを寄せているようなのです。もしよければ二人の仲を取り持ってやってくださいませんか。」"},
+      {name:"奥さん", text: "「まあ。……あなたはそれでよろしいのですか。」"},
+      {name:"私", text: "「彼は昔からの友人なのです。親からは勘当されていて財産も無いし、難しい性格ですが、真面目で一途な奴です。どうかお願いします。」"},
+      {name:"奥さん", text: "「……わかりました。少し考えさせてください。」"}
+    ],
+    next: "kokoroJudge"
+  },
+
+  end1: {
+    bg: "living",
+    character: "K＆ojosan",
+    bgm: "main",
+    pages:[
+      {name:"お嬢さん", text:"「最近、お二人とも変です。何かあったのですか。」"},
+      {text:"沈黙が落ちた。\n最初に口を開いたのはKだった。" },
+      {name:"K", text:"「僕は、お嬢さんを慕っています。」" },
+      {name:"私", text:"「僕もです。」" },
+      {text:"お嬢さんは目を見開いた。" },
+      {name:"お嬢さん", text:"「どうして、今まで黙っていたんです。」" },
+      {name:"私", text:"「君を困らせたくなかった。」" },
+      {name:"K", text:"「自分自身の気持ちにも、整理がつかなかった。」" },
+      {text:"お嬢さんは俯いた。\nそして、長い沈黙のあと、かすれた声で言った。" },
+      {name:"お嬢さん", text:"「私は……Kさんを尊敬しています。私の知らないことを沢山知っていて。」" },
+      {name:"お嬢さん", text:"「でも、私はあなたに救われました。父を亡くして先が見えなかった頃にいつも支えてくれましたね." },
+      {name:"お嬢さん", text:"「そういうことを思い出すと私はあなたのそばにいたいと思いました。」" },
+      {text:"私は返事ができなかった。\nKを見るとお嬢さんを真っ直ぐ見つめていた。" },
+      {name:"お嬢さん", text:"「ごめんなさい…" },
+      {name:"K", text:"「謝る必要はありません。想い人が選んだ相手ならそれを尊重する以外ないでしょう。」" },
+      {text:"Kは笑いながら、お嬢さんを大切にするようにと私に伝えた。" },
+      {text:"その後、私はお嬢さんと幸せな生活を送り、Kとの仲も続いている。" }
+    ],
+    endTitle: "End 1",
+    endMessage: "おしまい"
+  },
+
+  end2: {
+    bg: "room",
+    character: "none",
+    bgm: "main",
+    pages:[
+      {text:"数日後、Ｋは自殺した。遺書には、自分は薄志弱行で到底行く先の望みがないから自殺する、と書いてあった。"},
+      {text:"私は彼を裏切ったのだ。"},
+      {text:"けれども、私は彼に詫びることも償うこともできない。"}
+    ],
+    endTitle: "End 2",
+    endMessage: "おしまい"
+  },
+
+  end3: {
+    bg: "room",
+    character: "none",
+    bgm: "main",
+    pages:[
+      {text:"数日後、Ｋは自殺した。遺書には、自分は薄志弱行で到底行く先の望みがないから自殺する、と書いてあった。"},
+      {text:"私は彼の気持ちに真摯に答えることができなかった。"},
+      {text:"けれども、私は彼に詫びることも償うこともできない。"}
+    ],
+    endTitle: "End 3",
+    endMessage: "おしまい"
+  },
+
+  end4: {
+    bg: "room",
+    character: "none",
+    bgm: "main",
+    pages:[
+      {text: "しばらくして、Kは突然、一人暮らしをする見通しが立ったので下宿を出ていくと言い出した。"},
+      {text: "Kのお嬢さんへの恋は叶わなかったようだ。\nしかし、彼は以前よりもすっきりとした表情をしていた。"},
+      {text: "引っ越しの日、彼は私に、「世話になった。二人にもよろしく伝えてほしい。」と言った。"},
+      {text: "Kとの友情はこれからも続いていくだろう。"}
+    ],
+    endTitle: "End 4",
+    endMessage: "おしまい"
+  },
+
+  end5: {
+    bg: "room",
+    character: "none",
+    bgm: "main",
+    pages:[
+      {text: "しばらくして、Kはお嬢さんに思いを伝え、二人は結ばれた。"},
+      {text: "私の恋は叶わなかったが、親友がお嬢さんの隣で微笑んでいるのを見ると、その悔しさや苦しみは消えてしまった。"},
+      {text: "お嬢さんとの婚約が決まってすぐ、彼は私に、「ありがとう。君のおかげだ。」と言った。"},
+      {text: "Kとの友情はこれからも続いていくだろう。"},
+    ],
+    endTitle: "End 5",
+    endMessage: "おしまい"
+  }
+};
+
+  /* =========================================================
+     作品ごとの素材設定
+     ========================================================= */
+
+  const works = [
+    {
+      title: "少年の日の思い出",
+      caption: "ツンデレエーミールと仲良くなろう！",
+      titleBg: "title_shonen.jpg",
+      scenario: shonenScenario,
+
+      assets: {
+        backgrounds: {
+          main: "main_bg.jpg",
+          mikan: "未完みかん.png"
+        },
+
+        characters: {
+          normal: "stand_main.png",
+          alt: "stand_alt.png",
+          none: ""
+        },
+
+        bgms: {
+          main: "mainBgm",
+          alt: "altBgm",
+          ミーム:"memeBgm",
+          none: "none"
+        }
+      },
+
+      info: {
+        bg: "ending_bg.jpg",
+        title: "「少年の日の思い出」",
+        author: "ヘルマン・ヘッセ",
+        description: "初めは「クジャクヤママユ」という題で書かれた、一九一一年、三十四歳のときの作。ヘッセ自身の体験がどこまで入っているかは不明だったが、この作品の「わたし」のようにヘッセ自身、幼いことからチョウ収集が大好きだったといわれている。\n(新・国語の便覧より一部引用)"
+      }
+    },
+
+{
+  title: "手袋を買いに",
+  caption: "はじめてのおつかいを成功させよう！",
+  titleBg: "てぶくろ背景.png",
+  layout: "illustration",
+  scenario: tebukuroScenario,
+
+  assets: {
+    backgrounds: {
+      main: "file_home.png",
+      yama: "file_yama.png",
+      mati: "file_mati.png",
+      roji: "file_路地裏2.png",
+      tonomae: "file_tonomae.png",
+      tebukuro: "file_手袋2.png",
+      tadaima: "file_ただいま.png",
+      torakku: "file_トラック.png",
+      karasu: "file_カラス.png",
+      kuro: "黒画面.png"
+    },
+
+    characters: {
+      none: ""
+    },
+
+    bgms: {
+      main: "手袋mainBgm",
+      asa: "asaBgm",
+      oya: "oyaBgm",
+      osikura: "osikuraBgm",
+      kodoku: "kodokuBgm",
+      kiseki:"kisekiBgm",
+      yuki:"yukiBgm",
+      none: "none"
+    }
+  },
+
+  info: {
+    bg: "てぶくろ背景.png",
+    title: "「手袋を買いに」",
+    author: "新美南吉",
+    description: "「手袋を買いに」は新美南吉作の児童文学。\n南吉の生前に計画され、死の直後に刊行された童話集「牛をつないだ椿の木」(１９４３年)に収載された。\n（Wikipediaより引用）"
+  }
+},
+
+    {
+      title: "こころ",
+      caption: "恋の三角関係を楽しもう！",
+      titleBg: "こころはいけい.png",
+      scenario: kokoroScenario,
+
+      assets: {
+        backgrounds: {
+          room: "bg_room.jpg",
+          living: "bg_living.jpg",
+          park: "bg_park.jpg",
+          library: "bg_library.jpg"
+        },
+
+        characters: {
+          K: "stand_K.png",
+          okusan:"stand_okusan.png",
+          ojosan:"srtand_ojosan.png",
+          "K＆ojosan":"stand_K＆ojosan.png",
+          none: ""
+        },
+
+        bgms: {
+          main: "kokorobgm",
+          none: "none"
+        }
+      },
+
+      info: {
+        bg: "こころはいけい.png",
+        title: "「こころ」",
+        author: "夏目漱石",
+        description: "夏目漱石が1914年（大正3年）に夏目漱石が『朝日新聞』にて連載した長編小説。\n主人公が先生と出会う「上　先生と私」、主人公のが故郷に戻り、父親の死と向き合う過程を描く「中　両親と私」、主人公に届いた先生の遺書の内容が明かされる「下　先生と遺書」の三部構成。このゲームは学生時代の先生（この場面では「私」）が登場する「下　先生と遺書」（一部抜粋）をもとにした。"
+      }
+    }
+  ];
+
+  /* 共通効果音 */
+  const commonSounds = {
+    decision: "decisionSound",
+    break: "breakSound"
+  };
+
+  /* =========================================================
+     ここから下はゲーム本体。基本的には触らない。
+     ========================================================= */
+
+  
+  //フラグ//
+  const state = {
+    firstCicada: "",
+    secondCicada: "",
+    kokoroFirst: "",
+    kokoroSecond: "",
+    kokoroThird: "",
+    kokoroFourth: ""
+  };
+
+  let selectedWorkIndex = 0;
+  let currentWork = works[selectedWorkIndex];
+  let scenario = currentWork.scenario;
+
+  let current = "start";
+  let currentPageIndex = 0;
+  let currentPageText = "";
+
+  let charIndex = 0;
+  let typing = false;
+  let selectedChoice = 0;
+  let changingScene = false;
+  let soundReady = false;
+
+  let audioMuted = false;
+  let skipMode = false;
+
+  let currentBg = "";
+  let currentCharacter = "";
+  let currentBgm = "";
+
+  let endTyping = false;
+  let endCharIndex = 0;
+  let currentEndMessage = "";
+
+  const noticeScreen = document.getElementById("noticeScreen");
+  const titleScreen = document.getElementById("titleScreen");
+  const mainScreen = document.getElementById("mainScreen");
+  const endScreen = document.getElementById("endScreen");
+  const infoScreen = document.getElementById("infoScreen");
+
+  const gameTitle = document.getElementById("gameTitle");
+  const gameCaption = document.getElementById("gameCaption");
+  const prevGameButton = document.getElementById("prevGameButton");
+  const nextGameButton = document.getElementById("nextGameButton");
+  const startButton = document.getElementById("startButton");
+  const restartButton = document.getElementById("restartButton");
+  const backTitleButton = document.getElementById("backTitleButton");
+
+  const audioButton = document.getElementById("audioButton");
+  const skipButton = document.getElementById("skipButton");
+
+  const standImage = document.getElementById("standImage");
+  const choicesBox = document.getElementById("choices");
+  const nameBox = document.getElementById("name");
+  const textBox = document.getElementById("text");
+  const nextMark = document.getElementById("next");
+  const fadeBlack = document.getElementById("fadeBlack");
+
+  const endTitle = document.getElementById("endTitle");
+  const endMessage = document.getElementById("endMessage");
+
+  const workTitle = document.getElementById("workTitle");
+  const workAuthor = document.getElementById("workAuthor");
+  const workDescription = document.getElementById("workDescription");
+
+  
+  //BGM//
+const titleBgm = document.getElementById("titleBgm");
+const mainBgm = document.getElementById("mainBgm");
+const altBgm = document.getElementById("altBgm");
+const tebukuroMainBgm = document.getElementById("手袋mainBgm");
+const asaBgm = document.getElementById("asaBgm");
+const oyaBgm = document.getElementById("oyaBgm");
+const osikuraBgm = document.getElementById("osikuraBgm");
+const kodokuBgm = document.getElementById("kodokuBgm");
+const decisionSound = document.getElementById("decisionSound");
+const breakSound = document.getElementById("breakSound");
+const yukiBgm = document.getElementById("yukiBgm");
+const kisekiBgm = document.getElementById("kisekiBgm");
+const kokorobgm =  document.getElementById("kokorobgm");
+const memeBgm =  document.getElementById("memeBgm");
+
+
+const bgmElements = {
+  mainBgm: mainBgm,
+  altBgm: altBgm,
+  手袋mainBgm: tebukuroMainBgm,
+  asaBgm: asaBgm,
+  oyaBgm: oyaBgm,
+  osikuraBgm: osikuraBgm,
+  yukiBgm: yukiBgm,
+  kisekiBgm: kisekiBgm,
+  kodokuBgm: kodokuBgm,
+  kokorobgm: kokorobgm,
+  memeBgm:memeBgm
+  
+  };
+
+  const soundElements = {
+    decisionSound: decisionSound,
+    breakSound: breakSound
+  };
+
+  titleBgm.volume = 0.55;
+  mainBgm.volume = 0.48;
+  altBgm.volume = 0.48;
+  decisionSound.volume = 0.7;
+  breakSound.volume = 0.8;
+
+  function playSoundById(soundId) {
+    const sound = soundElements[soundId];
+    if (!sound || !soundReady) return;
+
+    sound.currentTime = 0;
+    sound.play().catch(() => {});
+  }
+
+  function playDecisionSound() {
+    playSoundById("decisionSound");
+  }
+
+  function playSceneSound(soundName) {
+    const soundId = commonSounds[soundName];
+    playSoundById(soundId);
+  }
+
+function setAudioMuted(muted) {
+  audioMuted = muted;
+
+  titleBgm.muted = muted;
+
+  Object.values(bgmElements).forEach((bgm) => {
+    if (!bgm) return;
+    bgm.muted = muted;
+  });
+
+  decisionSound.muted = muted;
+  breakSound.muted = muted;
+
+  audioButton.classList.toggle("active", muted);
+}
+
+  function setSkipMode(enabled) {
+    skipMode = enabled;
+    skipButton.classList.toggle("active", enabled);
+  }
+
+function stopAllBgm() {
+  titleBgm.pause();
+
+  Object.values(bgmElements).forEach((bgm) => {
+    if (!bgm) return;
+    bgm.pause();
+    bgm.currentTime = 0;
+  });
+}
+
+  function restartAndPlay(audio) {
+    audio.pause();
+    audio.currentTime = 0;
+    audio.play().catch(() => {});
+  }
+
+  function playTitleBgmFromStart() {
+    stopAllBgm();
+    restartAndPlay(titleBgm);
+    currentBgm = "title";
+  }
+
+  function playBgm(bgmName, forceRestart = false) {
+    if (currentBgm === bgmName && !forceRestart) return;
+
+    stopAllBgm();
+    currentBgm = bgmName;
+
+    if (bgmName === "none") return;
+
+    const bgmId = currentWork.assets.bgms[bgmName];
+    const bgm = bgmElements[bgmId];
+
+    if (!bgm) return;
+
+    bgm.currentTime = 0;
+    bgm.play().catch(() => {});
+  }
+
+  function applyTextVariables(text) {
+    return text
+      .replaceAll("{firstCicada}", state.firstCicada)
+      .replaceAll("{secondCicada}", state.secondCicada);
+  }
+
+  function resetState() {
+    state.firstCicada = "";
+    state.secondCicada = "";
+    state.kokoroFirst = "";
+    state.kokoroSecond = "";
+    state.kokoroThird = "";
+    state.kokoroFourth = "";
+  }
+
+  function updateTitleScreen() {
+    currentWork = works[selectedWorkIndex];
+    scenario = currentWork.scenario;
+
+    gameTitle.textContent = currentWork.title;
+    gameCaption.textContent = currentWork.caption;
+    titleScreen.style.backgroundImage = `url("${currentWork.titleBg}")`;
+  }
+
+  function switchWork(direction) {
+    playDecisionSound();
+
+    selectedWorkIndex = (selectedWorkIndex + direction + works.length) % works.length;
+    updateTitleScreen();
+
+  }
+
+  function showOnly(screen) {
+    noticeScreen.style.display = "none";
+    titleScreen.style.display = "none";
+    mainScreen.style.display = "none";
+    endScreen.style.display = "none";
+    infoScreen.style.display = "none";
+
+    screen.style.display = screen === titleScreen || screen === infoScreen ? "flex" : "block";
+  }
+
+  function fadeAction(action, long = false) {
+    if (changingScene) return;
+
+    changingScene = true;
+    playDecisionSound();
+    fadeBlack.classList.add(long ? "longFade" : "active");
+
+    setTimeout(() => {
+      action();
+      fadeBlack.classList.remove(long ? "longFade" : "active");
+      changingScene = false;
+    }, long ? 950 : 260);
+  }
+
+  function showTitle() {
+    showOnly(titleScreen);
+
+    audioButton.style.display = "block";
+    skipButton.style.display = "block";
+
+    updateTitleScreen();
+    playTitleBgmFromStart();
+  }
+
+  function startMain() {
+    resetState();
+
+    currentWork = works[selectedWorkIndex];
+    scenario = currentWork.scenario;
+
+    currentBg = "";
+    currentCharacter = "";
+    currentBgm = "";
+    currentPageIndex = 0;
+
+    showOnly(mainScreen);
+    showScene("start", true);
+  }
+
+  function showInfoScreen() {
+    const info = currentWork.info;
+
+    infoScreen.style.backgroundImage = `url("${info.bg}")`;
+    workTitle.textContent = info.title;
+    workAuthor.textContent = info.author;
+    workDescription.textContent = info.description;
+
+    showOnly(infoScreen);
+    playTitleBgmFromStart();
+  }
+
+  function needsFade(nextScene) {
+    const nextBg = nextScene.bg || "main";
+    const nextCharacter = nextScene.character || "none";
+
+    if (nextBg !== currentBg) return true;
+    if (nextCharacter !== currentCharacter) return true;
+
+    return false;
+  }
+
+function judgeKokoroEnding() {
+  const route = state.kokoroFirst + state.kokoroSecond + state.kokoroThird + state.kokoroFourth;
+
+  if (route === "ADFH") return "end1";
+  if (route === "BDFH") return "end4";
+  if (route === "BDFI") return "end5";
+
+  return "end2";
+}
+
+function goToScene(id) {
+  if (id === "kokoroJudge") {
+    goToScene(judgeKokoroEnding());
+    return;
+  }
+
+  const nextScene = scenario[id];
+
+  if (!nextScene) {
+    alert("場面が見つかりません: " + id);
+    return;
+  }
+
+  if (needsFade(nextScene)) {
+    fadeAction(() => showScene(id));
+  } else {
+    playDecisionSound();
+    showScene(id);
+  }
+}
+
+  function getPages(scene) {
+    if (scene.pages) return scene.pages;
+
+    if (scene.text) {
+      return [
+        {
+          name: scene.name || "",
+          text: scene.text
+        }
+      ];
+    }
+
+    return [
+      {
+        name: "",
+        text: ""
+      }
+    ];
+  }
+
+  function showScene(id, forceRestartBgm = false) {
+    current = id;
+    currentPageIndex = 0;
+
+    const scene = scenario[id];
+    
+
+    if (currentWork.layout === "illustration") {
+      document.body.classList.add("illustrationMode");
+    } else {
+      document.body.classList.remove("illustrationMode");
+    }
+
+ 
+
+    const bgName = scene.bg || "main";
+    const characterName = scene.character || "none";
+    const bgmName = scene.bgm || "main";
+    const soundName = scene.sound;
+
+    const bgFile = currentWork.assets.backgrounds[bgName];
+    const characterFile = currentWork.assets.characters[characterName];
+
+    if (bgFile) {
+      mainScreen.style.backgroundImage = `url("${bgFile}")`;
+      currentBg = bgName;
+    }
+
+    if (characterFile) {
+      standImage.src = characterFile;
+      standImage.classList.add("visible");
+      currentCharacter = characterName;
+    } else {
+      standImage.classList.remove("visible");
+      currentCharacter = "none";
+    }
+
+    playBgm(bgmName, forceRestartBgm);
+
+    if (soundName) {
+      playSceneSound(soundName);
+    }
+
+    showPage(currentPageIndex);
+  }
+
+  function showPage(pageIndex) {
+    const scene = scenario[current];
+    const pages = getPages(scene);
+    const page = pages[pageIndex];
+
+    const pageName = page.name ?? scene.name ?? "";
+    const pageText = page.text ?? "";
+
+    nameBox.textContent = pageName;
+    nameBox.style.display = pageName ? "block" : "none";
+
+    textBox.textContent = "";
+    choicesBox.innerHTML = "";
+    choicesBox.style.display = "none";
+    nextMark.style.display = "none";
+
+    currentPageText = applyTextVariables(pageText);
+    charIndex = 0;
+    typing = true;
+
+    if (skipMode) {
+      finishText();
+    } else {
+      typeText(currentPageText);
+    }
+  }
+
+  function typeText(fullText) {
+    if (charIndex < fullText.length) {
+      textBox.textContent += fullText.charAt(charIndex);
+      charIndex++;
+      setTimeout(() => typeText(fullText), 34);
+    } else {
+      typing = false;
+      showNextOrChoices();
+    }
+  }
+
+  function finishText() {
+    textBox.textContent = currentPageText;
+    charIndex = currentPageText.length;
+    typing = false;
+    showNextOrChoices();
+  }
+
+  function showNextOrChoices() {
+    const scene = scenario[current];
+    const pages = getPages(scene);
+
+    if (currentPageIndex < pages.length - 1) {
+      nextMark.style.display = "block";
+      return;
+    }
+
+    if (scene.choices) {
+      showChoices(scene.choices);
+      return;
+    }
+
+    if (scene.endTitle && scene.endMessage) {
+      nextMark.style.display = "block";
+      return;
+    }
+
+    if (scene.next) {
+      nextMark.style.display = "block";
+    }
+  }
+
+  function nextPageOrScene() {
+    const scene = scenario[current];
+    const pages = getPages(scene);
+
+    if (currentPageIndex < pages.length - 1) {
+      currentPageIndex++;
+      showPage(currentPageIndex);
+      return;
+    }
+
+    if (scene.endTitle && scene.endMessage) {
+      fadeAction(() => showEndScreen(scene.endTitle, scene.endMessage), true);
+      return;
+    }
+
+    if (scene.next) {
+      goToScene(scene.next);
+    }
+  }
+
+  function handleChoice(choice) {
+    if (choice.set) {
+      Object.assign(state, choice.set);
+    }
+
+    if (choice.answer) {
+      state.secondCicada = choice.answer;
+
+      if (choice.answer === state.firstCicada) {
+        goToScene("cicadaCorrect");
+      } else {
+        goToScene("cicadaWrong");
+      }
+
+      return;
+    }
+
+    goToScene(choice.next);
+  }
+
+function getAvailableChoices(choices) {
+  return choices.filter((choice) => {
+    if (choice.hideIf && choice.hideIf()) return false;
+    return true;
+  });
+}
+
+function showChoices(choices) {
+  const availableChoices = getAvailableChoices(choices);
+
+  choicesBox.innerHTML = "";
+  choicesBox.style.display = "flex";
+  selectedChoice = 0;
+
+  availableChoices.forEach((choice, index) => {
+    const button = document.createElement("button");
+
+    button.textContent = choice.text;
+    button.className = "choice";
+
+    if (index === selectedChoice) {
+      button.classList.add("selected");
+    }
+
+    button.onclick = (event) => {
+      event.stopPropagation();
+      selectedChoice = index;
+      updateChoiceSelection();
+      handleChoice(choice);
+    };
+
+    button.onpointerenter = () => {
+      selectedChoice = index;
+      updateChoiceSelection();
+    };
+
+    choicesBox.appendChild(button);
+  });
+}
+  
+  function updateChoiceSelection() {
+    const buttons = document.querySelectorAll(".choice");
+
+    buttons.forEach((button, index) => {
+      button.classList.toggle("selected", index === selectedChoice);
+    });
+  }
+
+  function showEndScreen(title, message) {
+    showOnly(endScreen);
+
+    endTitle.textContent = title;
+    endMessage.textContent = "";
+
+    currentEndMessage = message;
+    endCharIndex = 0;
+    endTyping = true;
+
+    if (skipMode) {
+      finishEndMessage();
+    } else {
+      typeEndMessage(message);
+    }
+  }
+
+  function typeEndMessage(message) {
+    if (endCharIndex < message.length) {
+      endMessage.textContent += message.charAt(endCharIndex);
+      endCharIndex++;
+      setTimeout(() => typeEndMessage(message), 65);
+    } else {
+      endTyping = false;
+    }
+  }
+
+  function finishEndMessage() {
+    endMessage.textContent = currentEndMessage;
+    endTyping = false;
+  }
+
+  function proceedEndScreen() {
+    if (endTyping) {
+      finishEndMessage();
+      return;
+    }
+
+    fadeAction(showInfoScreen, true);
+  }
+
+  function proceed() {
+    if (changingScene) return;
+
+    const scene = scenario[current];
+
+    if (typing) {
+      finishText();
+      return;
+    }
+
+    if (scene.choices && currentPageIndex >= getPages(scene).length - 1) {
+      handleChoice(scene.choices[selectedChoice]);
+      return;
+    }
+
+    nextPageOrScene();
+  }
+
+  audioButton.addEventListener("click", (event) => {
+    event.stopPropagation();
+    setAudioMuted(!audioMuted);
+  });
+
+  skipButton.addEventListener("click", (event) => {
+    event.stopPropagation();
+    setSkipMode(!skipMode);
+
+    if (typing) finishText();
+    if (endTyping) finishEndMessage();
+  });
+
+  prevGameButton.addEventListener("click", (event) => {
+    event.stopPropagation();
+    switchWork(-1);
+  });
+
+  nextGameButton.addEventListener("click", (event) => {
+    event.stopPropagation();
+    switchWork(1);
+  });
+
+  noticeScreen.addEventListener("click", () => {
+    soundReady = true;
+    fadeAction(showTitle);
+  });
+
+  startButton.addEventListener("click", (event) => {
+    event.stopPropagation();
+    fadeAction(startMain);
+  });
+
+  restartButton.addEventListener("click", (event) => {
+    event.stopPropagation();
+    fadeAction(startMain);
+  });
+
+  backTitleButton.addEventListener("click", (event) => {
+    event.stopPropagation();
+    fadeAction(showTitle);
+  });
+
+  endScreen.addEventListener("click", () => {
+    proceedEndScreen();
+  });
+
+  document.addEventListener("click", (event) => {
+    if (mainScreen.style.display !== "none" && !event.target.classList.contains("choice")) {
+      proceed();
+    }
+  });
+
+  document.addEventListener("keydown", (event) => {
+    if (!["Enter", " ", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(event.key)) {
+      return;
+    }
+
+    if (noticeScreen.style.display !== "none") {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        soundReady = true;
+        fadeAction(showTitle);
+      }
+      return;
+    }
+
+    if (titleScreen.style.display !== "none") {
+      if (event.key === "ArrowLeft") {
+        event.preventDefault();
+        switchWork(-1);
+        return;
+      }
+
+      if (event.key === "ArrowRight") {
+        event.preventDefault();
+        switchWork(1);
+        return;
+      }
+
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        fadeAction(startMain);
+      }
+      return;
+    }
+
+    if (endScreen.style.display !== "none") {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        proceedEndScreen();
+      }
+      return;
+    }
+
+    if (infoScreen.style.display !== "none") {
+      if (event.key === "Enter" || event.key === " ") {
+        event.preventDefault();
+        fadeAction(startMain);
+      }
+      return;
+    }
+
+    const scene = scenario[current];
+
+    if (event.key === "Enter" || event.key === " ") {
+      event.preventDefault();
+      proceed();
+      return;
+    }
+
+    if (scene.choices && !typing) {
+      if (event.key === "ArrowDown") {
+        event.preventDefault();
+        selectedChoice = (selectedChoice + 1) % scene.choices.length;
+        updateChoiceSelection();
+      }
+
+      if (event.key === "ArrowUp") {
+        event.preventDefault();
+        selectedChoice = (selectedChoice - 1 + scene.choices.length) % scene.choices.length;
+        updateChoiceSelection();
+      }
+    }
+  });
+
+  updateTitleScreen();
+</script>
 </body>
 </html>
