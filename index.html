@@ -1547,7 +1547,7 @@ ryoute:{
 const kokoroScenario = {
   start: {
     bg: "room",
-    character: "K",
+    character: "",
     bgm: "main",
     pages:[
       {text: "――あらすじ――"},
@@ -1596,6 +1596,7 @@ const kokoroScenario = {
     next: "FirstChoice"
   },
 
+ 
   FirstChoice: {
     bg: "room",
     name: "",
@@ -1645,17 +1646,28 @@ const kokoroScenario = {
 
   scene2_1: {
     bg: "library",
-    character: "K",
+    character: "",
     bgm: "main",
     pages:[
       {text:"――数日後"},
-      {text:"図書館で調べものをしているとKが話しかけてきた。"},
+      {text:"図書館で調べものをしているとKが話しかけてきた。"}
+    ],
+    next: "追加１"
+  },
+
+  追加１: {
+    bg: "library",
+    character: "K",
+    bgm: "main",
+    pages:[
       {name:"K", text:"「一緒に散歩でもしないか」"},
       {name:"私", text:"「……少し待っていてくれ。」"}
     ],
     next: "SecondChoice"
   },
 
+
+ 
   SecondChoice: {
     bg: "library",
     name: "K",
